@@ -23,6 +23,9 @@ export default class Player {
   /** A special town emitter that will emit events to the entire town BUT NOT to this player */
   public readonly townEmitter: TownEmitter;
 
+  /** The player's list of friends, stored as player ids */
+  private _friendsList: string[] = [];
+
   constructor(userName: string, townEmitter: TownEmitter) {
     this.location = {
       x: 0,
@@ -31,9 +34,12 @@ export default class Player {
       rotation: 'front',
     };
     this._userName = userName;
+    // change this to be a unique id for each player pulled from the database
     this._id = nanoid();
     this._sessionToken = nanoid();
     this.townEmitter = townEmitter;
+    // get friends list from database
+    // this._friendsList = getFriendsListFromDatabase(this._id);
   }
 
   get userName(): string {
@@ -54,6 +60,18 @@ export default class Player {
 
   get sessionToken(): string {
     return this._sessionToken;
+  }
+
+  get friendsList(): string[] {
+    return this._friendsList;
+  }
+
+  addFriend(playerId: string): void {
+    this._friendsList.push(playerId);
+  }
+
+  removeFriend(playerId: string): void {
+    this._friendsList = this._friendsList.filter(id => id !== playerId);
   }
 
   toPlayerModel(): PlayerModel {
