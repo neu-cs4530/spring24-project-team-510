@@ -22,6 +22,7 @@ import {
   ModalBody,
   ModalCloseButton,
   useDisclosure,
+  ButtonGroup,
 } from '@chakra-ui/react';
 import React from 'react';
 
@@ -34,9 +35,11 @@ export default function FriendList() {
       <Modal isOpen={isOpen} onClose={onClose} size='lg'>
         <ModalOverlay />
         <ModalContent>
+          {/* This is the content box of FriendList */}
           <ModalHeader>Friends Menu</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
+            {/* This is tabswitch, no need to add on-click */}
             <Tabs isFitted variant='soft-rounded' colorScheme='green'>
               <TabList>
                 <Tab>Friends</Tab>
@@ -44,7 +47,7 @@ export default function FriendList() {
                 <Tab>Requests</Tab>
                 <Tab>Add</Tab>
               </TabList>
-
+              {/* This is the content of Friends tab */}
               <TabPanels>
                 <TabPanel>
                   <Table variant='striped' colorScheme='teal'>
@@ -57,6 +60,7 @@ export default function FriendList() {
                       </Tr>
                     </Thead>
                     <Tbody>
+                      {/* TODO: render the friends of our player as <tr> element, and implement on-click for Invite and Teleport button */}
                       <Tr>
                         <Td>Player1</Td>
                         <Td>Online</Td>
@@ -131,13 +135,15 @@ export default function FriendList() {
                   </Table>
                 </TabPanel>
                 <TabPanel>
+                  {/* This is content for Group tab */}
                   <Table variant='striped' colorScheme='teal'>
                     <Thead>
                       <Tr>
-                        <Th>Group Members</Th>
+                        <Th fontSize='md'>Group Members</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
+                      {/* TODO: render all the group members */}
                       <Tr>
                         <Td>Player1</Td>
                       </Tr>
@@ -152,67 +158,175 @@ export default function FriendList() {
                       </Tr>
                     </Tbody>
                   </Table>
+                  {/* TODO: implement on-click for Leave and Assemble button, hide those button if player is not in group, hide Assemble
+                  button when the player is not the group leader */}
+                  <ButtonGroup gap='4'>
+                    <Button colorScheme='green' size='sm' variant='outline'>
+                      Leave
+                    </Button>
+                    <Button colorScheme='green' size='sm' variant='outline'>
+                      Assemble
+                    </Button>
+                  </ButtonGroup>
                 </TabPanel>
                 <TabPanel>
-                  <Table variant='striped' colorScheme='teal'>
-                    <Thead></Thead>
-                    <Tbody>
-                      <Tr>
-                        <Td>Player1</Td>
-                        <Td>
-                          <Button colorScheme='green' size='sm' variant='outline'>
-                            Accept
-                          </Button>
-                        </Td>
-                        <Td>
-                          <Button colorScheme='red' size='sm' variant='outline'>
-                            Decline
-                          </Button>
-                        </Td>
-                      </Tr>
-                      <Tr>
-                        <Td>Player2</Td>
-                        <Td>
-                          <Button colorScheme='green' size='sm' variant='outline'>
-                            Accept
-                          </Button>
-                        </Td>
-                        <Td>
-                          <Button colorScheme='red' size='sm' variant='outline'>
-                            Decline
-                          </Button>
-                        </Td>
-                      </Tr>
-                      <Tr>
-                        <Td>Player3</Td>
-                        <Td>
-                          <Button colorScheme='green' size='sm' variant='outline'>
-                            Accept
-                          </Button>
-                        </Td>
-                        <Td>
-                          <Button colorScheme='red' size='sm' variant='outline'>
-                            Decline
-                          </Button>
-                        </Td>
-                      </Tr>
-                      <Tr>
-                        <Td>Player4</Td>
-                        <Td>
-                          <Button colorScheme='green' size='sm' variant='outline'>
-                            Accept
-                          </Button>
-                        </Td>
-                        <Td>
-                          <Button colorScheme='red' size='sm' variant='outline'>
-                            Decline
-                          </Button>
-                        </Td>
-                      </Tr>
-                    </Tbody>
-                  </Table>
+                  <Tabs>
+                    <TabList>
+                      <Tab>Friend Request</Tab>
+                      <Tab>Group Request</Tab>
+                      <Tab>Teleport Request</Tab>
+                    </TabList>
+                    <TabPanels>
+                      {/* This is Friend Request Panel */}
+                      <TabPanel>
+                        <Table variant='striped' colorScheme='teal'>
+                          <Thead></Thead>
+                          <Tbody>
+                            {/* TODO: render Friend Request, and implement on-click for Accept and Decline button */}
+                            <Tr>
+                              <Td>Player1</Td>
+                              <Td>
+                                <Button colorScheme='green' size='sm' variant='outline'>
+                                  Accept
+                                </Button>
+                              </Td>
+                              <Td>
+                                <Button colorScheme='red' size='sm' variant='outline'>
+                                  Decline
+                                </Button>
+                              </Td>
+                            </Tr>
+                            <Tr>
+                              <Td>Player2</Td>
+                              <Td>
+                                <Button colorScheme='green' size='sm' variant='outline'>
+                                  Accept
+                                </Button>
+                              </Td>
+                              <Td>
+                                <Button colorScheme='red' size='sm' variant='outline'>
+                                  Decline
+                                </Button>
+                              </Td>
+                            </Tr>
+                            <Tr>
+                              <Td>Player3</Td>
+                              <Td>
+                                <Button colorScheme='green' size='sm' variant='outline'>
+                                  Accept
+                                </Button>
+                              </Td>
+                              <Td>
+                                <Button colorScheme='red' size='sm' variant='outline'>
+                                  Decline
+                                </Button>
+                              </Td>
+                            </Tr>
+                            <Tr>
+                              <Td>Player4</Td>
+                              <Td>
+                                <Button colorScheme='green' size='sm' variant='outline'>
+                                  Accept
+                                </Button>
+                              </Td>
+                              <Td>
+                                <Button colorScheme='red' size='sm' variant='outline'>
+                                  Decline
+                                </Button>
+                              </Td>
+                            </Tr>
+                          </Tbody>
+                        </Table>
+                      </TabPanel>
+                      <TabPanel>
+                        {/* This is Group Request Panel */}
+                        <Table variant='striped' colorScheme='teal'>
+                          <Thead></Thead>
+                          <Tbody>
+                            {/* TODO: render Group Request as <tr> element, and implement on-click for Accept and Decline button */}
+                            <Tr>
+                              <Td>Player1</Td>
+                              <Td>
+                                <Button colorScheme='green' size='sm' variant='outline'>
+                                  Accept
+                                </Button>
+                              </Td>
+                              <Td>
+                                <Button colorScheme='red' size='sm' variant='outline'>
+                                  Decline
+                                </Button>
+                              </Td>
+                            </Tr>
+                            <Tr>
+                              <Td>Player2</Td>
+                              <Td>
+                                <Button colorScheme='green' size='sm' variant='outline'>
+                                  Accept
+                                </Button>
+                              </Td>
+                              <Td>
+                                <Button colorScheme='red' size='sm' variant='outline'>
+                                  Decline
+                                </Button>
+                              </Td>
+                            </Tr>
+                            <Tr>
+                              <Td>Player3</Td>
+                              <Td>
+                                <Button colorScheme='green' size='sm' variant='outline'>
+                                  Accept
+                                </Button>
+                              </Td>
+                              <Td>
+                                <Button colorScheme='red' size='sm' variant='outline'>
+                                  Decline
+                                </Button>
+                              </Td>
+                            </Tr>
+                          </Tbody>
+                        </Table>
+                      </TabPanel>
+                      <TabPanel>
+                        {/* This is Teleport Request Panel */}
+                        <Table variant='striped' colorScheme='teal'>
+                          <Thead></Thead>
+                          <Tbody>
+                            <Tr>
+                              {/* TODO: render Teleport Request as <tr> element, and implement on-click for Accept and Decline button */}
+                              <Td>Player1</Td>
+                              <Td>
+                                <Button colorScheme='green' size='sm' variant='outline'>
+                                  Accept
+                                </Button>
+                              </Td>
+                              <Td>
+                                <Button colorScheme='red' size='sm' variant='outline'>
+                                  Decline
+                                </Button>
+                              </Td>
+                            </Tr>
+                            <Tr>
+                              <Td>Player2</Td>
+                              <Td>
+                                <Button colorScheme='green' size='sm' variant='outline'>
+                                  Accept
+                                </Button>
+                              </Td>
+                              <Td>
+                                <Button colorScheme='red' size='sm' variant='outline'>
+                                  Decline
+                                </Button>
+                              </Td>
+                            </Tr>
+                          </Tbody>
+                        </Table>
+                      </TabPanel>
+                    </TabPanels>
+                  </Tabs>
                 </TabPanel>
+                {/* This is Add Friend Panel */}
                 <TabPanel>
+                  {/* implement on-click for Add button here */}
                   <InputGroup>
                     <InputLeftAddon>Player ID</InputLeftAddon>
                     <Input />
