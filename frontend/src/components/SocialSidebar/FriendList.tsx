@@ -27,6 +27,7 @@ import {
 import React, { useState } from 'react';
 import useTownController from '../../hooks/useTownController';
 import * as db from '../../../../db';
+import { request } from 'http';
 
 export default function FriendList() {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -35,26 +36,66 @@ export default function FriendList() {
   const [friends, setFriends] = useState<string[]>([]);
   const [groupName, setGroupName] = useState('');
   const [groupLeader, setGroupLeader] = useState(0);
-  const [groupMembers, setGroupMembers] = useState([]);
+  const [groupMembers, setGroupMembers] = useState<string[]>([]);
 
-  const [friendRequests, setFriendRequests] = useState([]);
-  const [groupRequests, setGroupRequests] = useState([]);
-  const [teleportRequests, setTeleportRequests] = useState([]);
+  const [friendRequests, setFriendRequests] = useState<string[]>([]);
+  const [groupRequests, setGroupRequests] = useState<string[]>([]);
+  const [teleportRequests, setTeleportRequests] = useState<string[]>([]);
 
-  const getFriendInfo = async () => {
+  const getFriends = async () => {
     const { data, error } = await db.getFriends(townController.userID);
-    if (error || data == null) {
+    if (error) {
       throw new Error('error getting friends');
     }
-    console.log(townController.userID);
-    console.log(data);
-    setFriends(data as unknown[] as string[]);
-    console.log(friends);
+    setFriends(data?.map(friend => friend.friendid) as string[]);
+  };
+
+  const getGroupInfo = async () => {
+    const groupId = (await db.getGroupIdByPlayerId(townController.userID)).groupId;
+    const { data, error } = await db.getGroupById(groupId);
+    if (error) {
+      throw new Error('error getting group info');
+    }
+    setGroupName(data.groupname as string);
+    setGroupLeader(data.adminid as number);
+  };
+
+  const getGroupMembers = async () => {
+    const groupId = (await db.getGroupIdByPlayerId(5)).groupId;
+    const { data, error } = await db.getGroupMembers(groupId);
+    if (error) {
+      throw new Error('error getting group members');
+    }
+    setGroupMembers(data?.map(member => member.memberid) as string[]);
+  };
+
+  const getFriendRequests = async () => {
+    const { data, error } = await db.getReceivedFriendRequests();
+    if (error) {
+      throw new Error('error getting friend requests');
+    }
+    setFriendRequests(data?.map(friendRequest => friendRequest.requestorid) as string[]);
+  };
+
+  const getGroupRequests = async () => {
+    const { data, error } = await db.getReceivedGroupRequests();
+    if (error) {
+      throw new Error('error getting group requests');
+    }
+    setGroupRequests(data?.map(groupRequest => groupRequest.requestorid) as string[]);
+  };
+
+  const getTeleportRequests = async () => {
+    const { data, error } = await db.getReceivedTeleportRequests();
+    if (error) {
+      throw new Error('error getting friend requests');
+    }
+    setFriendRequests(data?.map(teleportRequest => teleportRequest.requestorid) as string[]);
   };
 
   return (
     <>
-      <Button onClick={getFriendInfo}>Friends</Button>
+      <Button onClick={onOpen}>Friends</Button>
 
       <Modal isOpen={isOpen} onClose={onClose} size='lg'>
         <ModalOverlay />

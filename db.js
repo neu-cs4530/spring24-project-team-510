@@ -48,8 +48,6 @@ export async function deleteUser(userId) {
     return { data, error };
 }
 
-
-
 //CRUD functions for table Friends
 export async function addFriend(userId, friendId) {
     const { data, error } = await supabase
@@ -72,7 +70,6 @@ export async function getFriends(userId) {
     
 }
 
-//getFriends(1);
 export async function deleteFriend(userId, friendId) {
     const [firstHalfResult, secondHalfResult] = await Promise.all([
         supabase.from('friends').delete().match({ userid: userId, friendid: friendId }),
@@ -94,12 +91,6 @@ export async function deleteFriend(userId, friendId) {
     }
 }
 
-
-
-//addFriend(2, 3)
-//getFriends(1)
-//deleteFriend(2,3)
-
 //CRUD functions for table Groups
 export async function createGroup(groupName, adminId) {
     const { data, error } = await supabase
@@ -110,7 +101,6 @@ export async function createGroup(groupName, adminId) {
 
     return { data, error }
 }
-//createGroup('fgfh',6)
 
 export async function getAllGroups() {
     const { data, error } = await supabase
@@ -148,10 +138,6 @@ export async function updateGroupAdmin(groupId, newAdmin) {
     return { data, error }
 }
 
-//updateGroupAdmin(1, 2)
-
-//updateGroupName(4,"new nmae")
-
 export async function deleteGroup(groupId) {
     const { data, error } = await supabase
       .from('Groups')
@@ -160,7 +146,6 @@ export async function deleteGroup(groupId) {
 
     return { data, error }
 }
-//deleteGroup(3)
 
 //CRUD functions for table GroupMembers
 export async function addGroupMember(groupId, memberId, isAdmin = false) {
@@ -172,7 +157,6 @@ export async function addGroupMember(groupId, memberId, isAdmin = false) {
 
     return { data, error }
 }
-//addGroupMember(1,4)
 
 export async function getGroupMembers(groupId) {
     const { data, error } = await supabase
@@ -182,15 +166,15 @@ export async function getGroupMembers(groupId) {
 
     return { data, error }
 }
-//getGroupMembers(1)
 
 export async function getGroupIdByPlayerId(playerId) {
     const { data, error } = await supabase
       .from('groupmembers')
-      .select('*')
-      .eq('memberid', playerId);
+      .select('groupid')
+      .eq('memberid', playerId)
+      .maybeSingle();
 
-    return { data, error }
+    return { groupId: data.groupid, error }
 }
 
 export async function checkIfAdmin(groupId, memberId) {
@@ -203,8 +187,6 @@ export async function checkIfAdmin(groupId, memberId) {
     return { data, error }
 }
 
-//checkIfAdmin(1, 1)
-
 export async function removeGroupMember(groupId, memberId) {
     const { data, error } = await supabase
       .from('groupmembers')
@@ -214,7 +196,6 @@ export async function removeGroupMember(groupId, memberId) {
     return { data, error }
 }
 
-//removeGroupMember(1, 4)
 export async function updateMemberAdminStatus(groupId, memberId, isAdmin) {
     const { data, error } = await supabase
       .from('groupmembers')
@@ -235,7 +216,6 @@ export async function createFriendRequest(requestorId, receiverId) {
     return { data, error }
 }
 
-//createFriendRequest(2,7)
 export async function getReceivedFriendRequests(receiverId) {
     const { data, error } = await supabase
       .from('friendrequests')
@@ -245,7 +225,7 @@ export async function getReceivedFriendRequests(receiverId) {
 
     return { data, error }
 }
-//getReceivedFriendRequests(7)
+
 export async function updateFriendRequestStatus(requestId, newStatus) {
     const { data, error } = await supabase
       .from('friendrequests')
@@ -254,7 +234,7 @@ export async function updateFriendRequestStatus(requestId, newStatus) {
 
     return { data, error }
 }
-//updateFriendRequestStatus(1, 'ACCEPTED')
+
 export async function deleteFriendRequest(requestId) {
     const { data, error } = await supabase
       .from('friendrequests')
@@ -263,7 +243,6 @@ export async function deleteFriendRequest(requestId) {
 
     return { data, error }
 }
-//deleteFriendRequest(1)
 
 //CRUD functions for table Group Request
 export async function sendGroupRequest(groupId, requestorId, receiverId) {
@@ -276,7 +255,6 @@ export async function sendGroupRequest(groupId, requestorId, receiverId) {
     return { data, error }
 }
 
-//sendGroupRequest(1,1,4)
 export async function getReceivedGroupRequests(receiverId) {
     const { data, error } = await supabase
       .from('grouprequests')
@@ -285,10 +263,7 @@ export async function getReceivedGroupRequests(receiverId) {
 
     return { data, error }
 }
-//sendGroupRequest(1,1,4)
-//sendGroupRequest(2,1,4)
-//sendGroupRequest(3,9,4)
-//getReceivedGroupRequests(4)
+
 export async function updateGroupRequestStatus(requestId, newStatus) {
     const { data, error } = await supabase
       .from('grouprequests')
@@ -298,8 +273,6 @@ export async function updateGroupRequestStatus(requestId, newStatus) {
     return { data, error }
 }
 
-//updateGroupRequestStatus(1,'ACCEPTED')
-
 export async function deleteGroupRequest(requestId) {
     const { data, error } = await supabase
       .from('grouprequests')
@@ -308,4 +281,41 @@ export async function deleteGroupRequest(requestId) {
 
     return { data, error }
 }
-//deleteGroupRequest(1)
+
+//CRUD functions for table Teleport Request
+export async function createTeleportRequest(requestorId, receiverId) {
+  const { data, error } = await supabase
+    .from('teleportrequests')
+    .insert([
+      { requestorid: requestorId, receiverid: receiverId }
+    ]).select();
+
+  return { data, error }
+}
+
+export async function getReceivedTeleportRequests(receiverId) {
+  const { data, error } = await supabase
+    .from('teleportrequests')
+    .select('*')
+    .eq('receiverid', receiverId)
+
+  return { data, error }
+}
+
+export async function updateTeleportRequestStatus(requestId, newStatus) {
+  const { data, error } = await supabase
+    .from('teleportrequests')
+    .update({ requeststatus: newStatus })
+    .eq('requestid', requestId).select();
+
+  return { data, error }
+}
+
+export async function deleteTeleportRequest(requestId) {
+  const { data, error } = await supabase
+    .from('teleportrequests')
+    .delete()
+    .eq('requestid', requestId).select();
+
+  return { data, error }
+}
