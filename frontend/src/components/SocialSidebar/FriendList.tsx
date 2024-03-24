@@ -90,7 +90,7 @@ export default function FriendList() {
     if (error) {
       throw new Error('error getting friend requests');
     }
-    setFriendRequests(data?.map(teleportRequest => teleportRequest.requestorid) as string[]);
+    setTeleportRequests(data?.map(teleportRequest => teleportRequest.requestorid) as string[]);
   };
 
   return (
