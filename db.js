@@ -2,9 +2,9 @@ const { createClient } = require('@supabase/supabase-js');
 
 //require('dotenv').config();
 //const supabase = createClient(process.env.REACT_APP_SUPABASE_URL, process.env.REACT_APP_SUPABASE_ANON_KEY)
-const supabase = createClient('url is in our revised projec plan', 'so do api key')
+const supabase = createClient('https://bvevhrvfqwciuokadumx.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZXZocnZmcXdjaXVva2FkdW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTA2MjM0NDMsImV4cCI6MjAyNjE5OTQ0M30.iPleffF5HuzrL65TjqmaHVevm4_5jAAUmbPig50Jbog')
 //CRUD functions for table Users
-async function createUser(username, status) {
+export async function createUser(username, status) {
     const { data, error } = await supabase
       .from('users')
       .insert([
@@ -14,7 +14,7 @@ async function createUser(username, status) {
     return { data, error };
   }
 
-async function readUser(userId) {
+export async function readUser(userId) {
     const { data, error } = await supabase
         .from('users')
         .select('*') 
@@ -23,7 +23,7 @@ async function readUser(userId) {
     return { data, error };
 }  
 
-async function getUsers() {
+export async function getUsers() {
     const { data, error } = await supabase
         .from('users')
         .select('*') 
@@ -31,7 +31,7 @@ async function getUsers() {
     return { data, error };
 }  
 
-async function updateUserStatus(userId, newUserStatus) {
+export async function updateUserStatus(userId, newUserStatus) {
     const { data, error } = await supabase
         .from('users')
         .update({ status: newUserStatus }) 
@@ -40,7 +40,7 @@ async function updateUserStatus(userId, newUserStatus) {
     return { data, error };
 }
 
-async function deleteUser(userId) {
+export async function deleteUser(userId) {
     const { data, error } = await supabase
         .from('users')
         .delete()
@@ -51,7 +51,7 @@ async function deleteUser(userId) {
 
 
 //CRUD functions for table Friends
-async function addFriend(userId, friendId) {
+export async function addFriend(userId, friendId) {
     const { data, error } = await supabase
       .from('friends')
       .insert([
@@ -62,7 +62,7 @@ async function addFriend(userId, friendId) {
     return { data, error };
 }
 
-async function getFriends(userId) {
+export async function getFriends(userId) {
     const { data, error } = await supabase
       .from('friends')
       .select('friendid')
@@ -73,7 +73,7 @@ async function getFriends(userId) {
 }
 
 //getFriends(1);
-async function deleteFriend(userId, friendId) {
+export async function deleteFriend(userId, friendId) {
     const [firstHalfResult, secondHalfResult] = await Promise.all([
         supabase.from('friends').delete().match({ userid: userId, friendid: friendId }),
         supabase.from('friends').delete().match({ userid: friendId, friendid: userId })
@@ -101,7 +101,7 @@ async function deleteFriend(userId, friendId) {
 //deleteFriend(2,3)
 
 //CRUD functions for table Groups
-async function createGroup(groupName, adminId) {
+export async function createGroup(groupName, adminId) {
     const { data, error } = await supabase
       .from('Groups')
       .insert([
@@ -112,7 +112,7 @@ async function createGroup(groupName, adminId) {
 }
 //createGroup('fgfh',6)
 
-async function getAllGroups() {
+export async function getAllGroups() {
     const { data, error } = await supabase
       .from('Groups')
       .select('*');
@@ -120,7 +120,7 @@ async function getAllGroups() {
     return { data, error }
 }
 
-async function getGroupById(groupId) {
+export async function getGroupById(groupId) {
     const { data, error } = await supabase
       .from('Groups')
       .select('*')
@@ -130,7 +130,7 @@ async function getGroupById(groupId) {
     return { data, error }
 }
 
-async function updateGroupName(groupId, newName) {
+export async function updateGroupName(groupId, newName) {
     const { data, error } = await supabase
       .from('Groups')
       .update({ groupname: newName })
@@ -139,7 +139,7 @@ async function updateGroupName(groupId, newName) {
     return { data, error }
 }
 
-async function updateGroupAdmin(groupId, newAdmin) {
+export async function updateGroupAdmin(groupId, newAdmin) {
     const { data, error } = await supabase
       .from('Groups')
       .update({ adminid: newAdmin })
@@ -152,7 +152,7 @@ async function updateGroupAdmin(groupId, newAdmin) {
 
 //updateGroupName(4,"new nmae")
 
-async function deleteGroup(groupId) {
+export async function deleteGroup(groupId) {
     const { data, error } = await supabase
       .from('Groups')
       .delete()
@@ -163,7 +163,7 @@ async function deleteGroup(groupId) {
 //deleteGroup(3)
 
 //CRUD functions for table GroupMembers
-async function addGroupMember(groupId, memberId, isAdmin = false) {
+export async function addGroupMember(groupId, memberId, isAdmin = false) {
     const { data, error } = await supabase
       .from('groupmembers')
       .insert([
@@ -174,7 +174,7 @@ async function addGroupMember(groupId, memberId, isAdmin = false) {
 }
 //addGroupMember(1,4)
 
-async function getGroupMembers(groupId) {
+export async function getGroupMembers(groupId) {
     const { data, error } = await supabase
       .from('groupmembers')
       .select('*')
@@ -184,7 +184,16 @@ async function getGroupMembers(groupId) {
 }
 //getGroupMembers(1)
 
-async function checkIfAdmin(groupId, memberId) {
+export async function getGroupIdByPlayerId(playerId) {
+    const { data, error } = await supabase
+      .from('groupmembers')
+      .select('*')
+      .eq('memberid', playerId);
+
+    return { data, error }
+}
+
+export async function checkIfAdmin(groupId, memberId) {
     const { data, error } = await supabase
       .from('groupmembers')
       .select('isadmin')
@@ -196,7 +205,7 @@ async function checkIfAdmin(groupId, memberId) {
 
 //checkIfAdmin(1, 1)
 
-async function removeGroupMember(groupId, memberId) {
+export async function removeGroupMember(groupId, memberId) {
     const { data, error } = await supabase
       .from('groupmembers')
       .delete()
@@ -206,7 +215,7 @@ async function removeGroupMember(groupId, memberId) {
 }
 
 //removeGroupMember(1, 4)
-async function updateMemberAdminStatus(groupId, memberId, isAdmin) {
+export async function updateMemberAdminStatus(groupId, memberId, isAdmin) {
     const { data, error } = await supabase
       .from('groupmembers')
       .update({ isadmin: isAdmin })
@@ -216,7 +225,7 @@ async function updateMemberAdminStatus(groupId, memberId, isAdmin) {
 }
 
 //CRUD functions for table Friend Request
-async function createFriendRequest(requestorId, receiverId) {
+export async function createFriendRequest(requestorId, receiverId) {
     const { data, error } = await supabase
       .from('friendrequests')
       .insert([
@@ -227,7 +236,7 @@ async function createFriendRequest(requestorId, receiverId) {
 }
 
 //createFriendRequest(2,7)
-async function getReceivedFriendRequests(receiverId) {
+export async function getReceivedFriendRequests(receiverId) {
     const { data, error } = await supabase
       .from('friendrequests')
       .select('*')
@@ -237,7 +246,7 @@ async function getReceivedFriendRequests(receiverId) {
     return { data, error }
 }
 //getReceivedFriendRequests(7)
-async function updateFriendRequestStatus(requestId, newStatus) {
+export async function updateFriendRequestStatus(requestId, newStatus) {
     const { data, error } = await supabase
       .from('friendrequests')
       .update({ requeststatus: newStatus })
@@ -246,7 +255,7 @@ async function updateFriendRequestStatus(requestId, newStatus) {
     return { data, error }
 }
 //updateFriendRequestStatus(1, 'ACCEPTED')
-async function deleteFriendRequest(requestId) {
+export async function deleteFriendRequest(requestId) {
     const { data, error } = await supabase
       .from('friendrequests')
       .delete()
@@ -257,7 +266,7 @@ async function deleteFriendRequest(requestId) {
 //deleteFriendRequest(1)
 
 //CRUD functions for table Group Request
-async function sendGroupRequest(groupId, requestorId, receiverId) {
+export async function sendGroupRequest(groupId, requestorId, receiverId) {
     const { data, error } = await supabase
       .from('grouprequests')
       .insert([
@@ -268,7 +277,7 @@ async function sendGroupRequest(groupId, requestorId, receiverId) {
 }
 
 //sendGroupRequest(1,1,4)
-async function getReceivedGroupRequests(receiverId) {
+export async function getReceivedGroupRequests(receiverId) {
     const { data, error } = await supabase
       .from('grouprequests')
       .select('*')
@@ -280,7 +289,7 @@ async function getReceivedGroupRequests(receiverId) {
 //sendGroupRequest(2,1,4)
 //sendGroupRequest(3,9,4)
 //getReceivedGroupRequests(4)
-async function updateGroupRequestStatus(requestId, newStatus) {
+export async function updateGroupRequestStatus(requestId, newStatus) {
     const { data, error } = await supabase
       .from('grouprequests')
       .update({ requeststatus: newStatus })
@@ -291,7 +300,7 @@ async function updateGroupRequestStatus(requestId, newStatus) {
 
 //updateGroupRequestStatus(1,'ACCEPTED')
 
-async function deleteGroupRequest(requestId) {
+export async function deleteGroupRequest(requestId) {
     const { data, error } = await supabase
       .from('grouprequests')
       .delete()

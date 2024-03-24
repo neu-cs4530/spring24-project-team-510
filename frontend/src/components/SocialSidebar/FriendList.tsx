@@ -24,13 +24,37 @@ import {
   useDisclosure,
   ButtonGroup,
 } from '@chakra-ui/react';
-import React from 'react';
+import React, { useState } from 'react';
+import useTownController from '../../hooks/useTownController';
+import * as db from '../../../../db';
 
 export default function FriendList() {
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const townController = useTownController();
+
+  const [friends, setFriends] = useState<string[]>([]);
+  const [groupName, setGroupName] = useState('');
+  const [groupLeader, setGroupLeader] = useState(0);
+  const [groupMembers, setGroupMembers] = useState([]);
+
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [groupRequests, setGroupRequests] = useState([]);
+  const [teleportRequests, setTeleportRequests] = useState([]);
+
+  const getFriendInfo = async () => {
+    const { data, error } = await db.getFriends(townController.userID);
+    if (error || data == null) {
+      throw new Error('error getting friends');
+    }
+    console.log(townController.userID);
+    console.log(data);
+    setFriends(data as unknown[] as string[]);
+    console.log(friends);
+  };
+
   return (
     <>
-      <Button onClick={onOpen}>Friends</Button>
+      <Button onClick={getFriendInfo}>Friends</Button>
 
       <Modal isOpen={isOpen} onClose={onClose} size='lg'>
         <ModalOverlay />
