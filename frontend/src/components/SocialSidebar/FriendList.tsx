@@ -24,7 +24,7 @@ import {
   useDisclosure,
   ButtonGroup,
 } from '@chakra-ui/react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import useTownController from '../../hooks/useTownController';
 import * as db from '../../../../db';
 import { request } from 'http';
@@ -32,6 +32,7 @@ import { request } from 'http';
 export default function FriendList() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const townController = useTownController();
+  const playerId = 5;
 
   const [friends, setFriends] = useState<string[]>([]);
   const [groupName, setGroupName] = useState('');
@@ -42,56 +43,78 @@ export default function FriendList() {
   const [groupRequests, setGroupRequests] = useState<string[]>([]);
   const [teleportRequests, setTeleportRequests] = useState<string[]>([]);
 
-  const getFriends = async () => {
-    const { data, error } = await db.getFriends(townController.userID);
-    if (error) {
-      throw new Error('error getting friends');
-    }
-    setFriends(data?.map(friend => friend.friendid) as string[]);
-  };
+  useEffect(() => {
+    const getFriends = async () => {
+      const { data, error } = await db.getFriends(playerId);
+      if (error) {
+        throw new Error('error getting friends');
+      }
+      setFriends(data?.map(friend => friend.friendid) as string[]);
+    };
+    getFriends();
+    console.log(friends);
+  }, [playerId, isOpen]);
 
-  const getGroupInfo = async () => {
-    const groupId = (await db.getGroupIdByPlayerId(townController.userID)).groupId;
-    const { data, error } = await db.getGroupById(groupId);
-    if (error) {
-      throw new Error('error getting group info');
-    }
-    setGroupName(data.groupname as string);
-    setGroupLeader(data.adminid as number);
-  };
+  useEffect(() => {
+    const getGroupInfo = async () => {
+      const groupId = (await db.getGroupIdByPlayerId(playerId)).groupId;
+      const { data, error } = await db.getGroupById(groupId);
+      if (error) {
+        setGroupName('');
+        setGroupLeader(0);
+      } else {
+        setGroupName(data.groupname as string);
+        setGroupLeader(data.adminid as number);
+      }
+    };
+    getGroupInfo();
+  }, [playerId, isOpen]);
 
-  const getGroupMembers = async () => {
-    const groupId = (await db.getGroupIdByPlayerId(5)).groupId;
-    const { data, error } = await db.getGroupMembers(groupId);
-    if (error) {
-      throw new Error('error getting group members');
-    }
-    setGroupMembers(data?.map(member => member.memberid) as string[]);
-  };
+  useEffect(() => {
+    const getGroupMembers = async () => {
+      const groupId = (await db.getGroupIdByPlayerId(playerId)).groupId;
+      const { data, error } = await db.getGroupMembers(groupId);
+      if (error) {
+        setGroupMembers([]);
+      } else {
+        setGroupMembers(data?.map(member => member.memberid) as string[]);
+      }
+    };
+    getGroupMembers();
+  }, [playerId, isOpen]);
 
-  const getFriendRequests = async () => {
-    const { data, error } = await db.getReceivedFriendRequests();
-    if (error) {
-      throw new Error('error getting friend requests');
-    }
-    setFriendRequests(data?.map(friendRequest => friendRequest.requestorid) as string[]);
-  };
+  useEffect(() => {
+    const getFriendRequests = async () => {
+      const { data, error } = await db.getReceivedFriendRequests();
+      if (error) {
+        throw new Error('error getting friend requests');
+      }
+      setFriendRequests(data?.map(friendRequest => friendRequest.requestorid) as string[]);
+    };
+    getFriendRequests();
+  }, [playerId, isOpen]);
 
-  const getGroupRequests = async () => {
-    const { data, error } = await db.getReceivedGroupRequests();
-    if (error) {
-      throw new Error('error getting group requests');
-    }
-    setGroupRequests(data?.map(groupRequest => groupRequest.requestorid) as string[]);
-  };
+  useEffect(() => {
+    const getGroupRequests = async () => {
+      const { data, error } = await db.getReceivedGroupRequests();
+      if (error) {
+        throw new Error('error getting group requests');
+      }
+      setGroupRequests(data?.map(groupRequest => groupRequest.requestorid) as string[]);
+    };
+    getGroupRequests();
+  }, [playerId, isOpen]);
 
-  const getTeleportRequests = async () => {
-    const { data, error } = await db.getReceivedTeleportRequests();
-    if (error) {
-      throw new Error('error getting friend requests');
-    }
-    setTeleportRequests(data?.map(teleportRequest => teleportRequest.requestorid) as string[]);
-  };
+  useEffect(() => {
+    const getTeleportRequests = async () => {
+      const { data, error } = await db.getReceivedTeleportRequests();
+      if (error) {
+        throw new Error('error getting teleport requests');
+      }
+      setTeleportRequests(data?.map(teleportRequest => teleportRequest.requestorid) as string[]);
+    };
+    getTeleportRequests();
+  }, [playerId, isOpen]);
 
   return (
     <>

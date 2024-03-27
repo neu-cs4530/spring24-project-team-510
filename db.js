@@ -4,11 +4,11 @@ const { createClient } = require('@supabase/supabase-js');
 //const supabase = createClient(process.env.REACT_APP_SUPABASE_URL, process.env.REACT_APP_SUPABASE_ANON_KEY)
 const supabase = createClient('https://bvevhrvfqwciuokadumx.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZXZocnZmcXdjaXVva2FkdW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTA2MjM0NDMsImV4cCI6MjAyNjE5OTQ0M30.iPleffF5HuzrL65TjqmaHVevm4_5jAAUmbPig50Jbog')
 //CRUD functions for table Users
-export async function createUser(username, status) {
+export async function createUser(userid, username, status) {
     const { data, error } = await supabase
       .from('users')
       .insert([
-        { username: username, status: status }
+        { userid: userid, username: username, status: status }
       ]).select();
   
     return { data, error };
@@ -173,8 +173,10 @@ export async function getGroupIdByPlayerId(playerId) {
       .select('groupid')
       .eq('memberid', playerId)
       .maybeSingle();
-
-    return { groupId: data.groupid, error }
+    if (data) {
+        return { groupId: data.groupid, error }
+    }
+    return { groupId: null, error }
 }
 
 export async function checkIfAdmin(groupId, memberId) {
