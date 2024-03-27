@@ -84,7 +84,7 @@ export default function FriendList() {
 
   useEffect(() => {
     const getFriendRequests = async () => {
-      const { data, error } = await db.getReceivedFriendRequests();
+      const { data, error } = await db.getReceivedFriendRequests(playerId);
       if (error) {
         throw new Error('error getting friend requests');
       }
@@ -95,7 +95,7 @@ export default function FriendList() {
 
   useEffect(() => {
     const getGroupRequests = async () => {
-      const { data, error } = await db.getReceivedGroupRequests();
+      const { data, error } = await db.getReceivedGroupRequests(playerId);
       if (error) {
         throw new Error('error getting group requests');
       }
@@ -106,7 +106,7 @@ export default function FriendList() {
 
   useEffect(() => {
     const getTeleportRequests = async () => {
-      const { data, error } = await db.getReceivedTeleportRequests();
+      const { data, error } = await db.getReceivedTeleportRequests(playerId);
       if (error) {
         throw new Error('error getting teleport requests');
       }
