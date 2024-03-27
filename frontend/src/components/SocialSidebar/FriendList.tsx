@@ -32,7 +32,7 @@ import { request } from 'http';
 export default function FriendList() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const townController = useTownController();
-  const playerId = 5;
+  const playerId = townController.userID;
 
   const [friends, setFriends] = useState<string[]>([]);
   const [groupName, setGroupName] = useState('');
