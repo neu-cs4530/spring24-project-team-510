@@ -52,7 +52,6 @@ export default function FriendList() {
       setFriends(data?.map(friend => friend.friendid) as string[]);
     };
     getFriends();
-    console.log(friends);
   }, [playerId, isOpen]);
 
   useEffect(() => {
