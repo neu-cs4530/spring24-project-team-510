@@ -214,9 +214,10 @@ export async function updateMemberAdminStatus(groupId, memberId, isAdmin) {
 export async function createFriendRequest(requestorId, receiverId) {
   const { data, error } = await supabase
     .from('friendrequests')
-    .insert([{ requestorid: requestorId, receiverid: receiverId }])
+    .insert([{ requestorid: requestorId, receiverid: receiverId, requeststatus: 'PENDING'}])
     .select();
 
+  console.log('Friend request sent');
   return { data, error };
 }
 
@@ -239,21 +240,21 @@ export async function getFriendRequestorId(friend) {
   return { data, error };
 }
 
-export async function updateFriendRequestStatus(requestId, newStatus) {
+export async function updateFriendRequestStatus(requestorId, newStatus) {
   const { data, error } = await supabase
     .from('friendrequests')
     .update({ requeststatus: newStatus })
-    .eq('requestid', requestId)
+    .eq('requestorid', requestorId)
     .select();
 
   return { data, error };
 }
 
-export async function deleteFriendRequest(requestId) {
+export async function deleteFriendRequest(requestorId) {
   const { data, error } = await supabase
     .from('friendrequests')
     .delete()
-    .eq('requestid', requestId)
+    .eq('requestorid', requestorId)
     .select();
 
   return { data, error };
