@@ -26,7 +26,7 @@ import {
 } from '@chakra-ui/react';
 import React, { useEffect, useState } from 'react';
 import useTownController from '../../hooks/useTownController';
-import * as db from '../../../../db';
+import * as db from '../../../../townService/src/api/Player/db';
 import { request } from 'http';
 
 export default function FriendList() {
