@@ -27,7 +27,6 @@ import {
   PinInputField,
 } from '@chakra-ui/react';
 import React, { useState, useEffect } from 'react';
-import React, { useState, useEffect } from 'react';
 import useTownController from '../../hooks/useTownController';
 import * as db from '../../../../townService/src/api/Player/db';
 import { request } from 'http';
@@ -42,11 +41,9 @@ export default function FriendList() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const townController = useTownController();
   const thisPlayerId = townController.userID;
-  const thisPlayerId = townController.userID;
 
   const [friends, setFriends] = useState<string[]>([]);
   const [groupName, setGroupName] = useState('');
-  const [groupLeader, setGroupLeader] = useState('');
   const [groupLeader, setGroupLeader] = useState('');
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
 
@@ -55,18 +52,7 @@ export default function FriendList() {
   const [teleportRequests, setTeleportRequests] = useState<string[]>([]);
 
   const [playerId, setPlayerId] = useState<string>('');
-  const [playerId, setPlayerId] = useState<string>('');
 
-  useEffect(() => {
-    const getFriends = async () => {
-      const { data, error } = await db.getFriends(thisPlayerId);
-      if (error) {
-        throw new Error('error getting friends');
-      }
-      setFriends(data?.map(friend => friend.friendid) as string[]);
-    };
-    getFriends();
-  }, [thisPlayerId, isOpen]);
   useEffect(() => {
     const getFriends = async () => {
       const { data, error } = await db.getFriends(thisPlayerId);
@@ -92,33 +78,7 @@ export default function FriendList() {
     };
     getGroupInfo();
   }, [thisPlayerId, isOpen]);
-  useEffect(() => {
-    const getGroupInfo = async () => {
-      const groupId = (await db.getGroupIdByPlayerId(thisPlayerId)).groupId;
-      const { data, error } = await db.getGroupById(groupId);
-      if (error) {
-        setGroupName('');
-        setGroupLeader('');
-      } else {
-        setGroupName(data.groupname as string);
-        setGroupLeader(data.adminid as string);
-      }
-    };
-    getGroupInfo();
-  }, [thisPlayerId, isOpen]);
 
-  useEffect(() => {
-    const getGroupMembers = async () => {
-      const groupId = (await db.getGroupIdByPlayerId(thisPlayerId)).groupId;
-      const { data, error } = await db.getGroupMembers(groupId);
-      if (error) {
-        setGroupMembers([]);
-      } else {
-        setGroupMembers(data?.map(member => member.memberid) as string[]);
-      }
-    };
-    getGroupMembers();
-  }, [thisPlayerId, isOpen]);
   useEffect(() => {
     const getGroupMembers = async () => {
       const groupId = (await db.getGroupIdByPlayerId(thisPlayerId)).groupId;
@@ -205,20 +165,10 @@ export default function FriendList() {
             size='sm'
             variant='outline'
             onClick={() => acceptFriendRequest(props.requestorId)}>
-          <Button
-            colorScheme='green'
-            size='sm'
-            variant='outline'
-            onClick={() => acceptFriendRequest(props.requestorId)}>
             Accept
           </Button>
         </Td>
         <Td>
-          <Button
-            colorScheme='red'
-            size='sm'
-            variant='outline'
-            onClick={() => declineFriendRequest(props.requestorId)}>
           <Button
             colorScheme='red'
             size='sm'
@@ -257,51 +207,8 @@ export default function FriendList() {
       </Table>
     );
   };
-    return (
-      <Table variant='striped' colorScheme='teal'>
-        <Thead></Thead>
-        <Tbody>
-          {friendRequests.map(friendRequest => {
-            return (
-              <FriendRequestPrompt
-                key={friendRequest.requestorId}
-                requestorId={friendRequest.requestorId}
-                requestorName={friendRequest.requestorName}
-              />
-            );
-          })}
-        </Tbody>
-      </Table>
-    );
-  };
 
   const AddFriendComponent = () => {
-    return (
-      <InputGroup>
-        <InputLeftAddon>Player ID</InputLeftAddon>
-        <Input
-          name='playerId'
-          value={playerId}
-          placeholder='type playerId here'
-          onChange={e => {
-            setPlayerId(e.target.value);
-          }}
-        />
-        <InputRightElement>
-          <Button
-            onClick={async () => {
-              try {
-                await db.createFriendRequest(townController.userID, playerId);
-              } catch (error) {
-                console.error('Error sending friend request:', error);
-              }
-            }}>
-            Add
-          </Button>
-        </InputRightElement>
-      </InputGroup>
-    );
-  };
     return (
       <InputGroup>
         <InputLeftAddon>Player ID</InputLeftAddon>
