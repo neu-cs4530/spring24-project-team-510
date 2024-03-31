@@ -66,7 +66,8 @@ export async function deleteUser(userId) {
 export async function addFriend(userId, friendId) {
   const { data, error } = await supabase
     .from('friends')
-    .insert([{ userid: userId, friendid: friendId }])
+    .insert([{ userid: userId, friendid: friendId },
+    { userid: friendId, friendid: userId },])
     .select();
 
   return { data, error };
