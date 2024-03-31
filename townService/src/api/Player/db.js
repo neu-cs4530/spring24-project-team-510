@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // require('dotenv').config();
 // const supabase = createClient(process.env.REACT_APP_SUPABASE_URL, process.env.REACT_APP_SUPABASE_ANON_KEY)
-const supabase = createClient(
+export const supabase = createClient(
   'https://bvevhrvfqwciuokadumx.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZXZocnZmcXdjaXVva2FkdW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTA2MjM0NDMsImV4cCI6MjAyNjE5OTQ0M30.iPleffF5HuzrL65TjqmaHVevm4_5jAAUmbPig50Jbog',
 );
@@ -66,10 +66,7 @@ export async function deleteUser(userId) {
 export async function addFriend(userId, friendId) {
   const { data, error } = await supabase
     .from('friends')
-    .insert([
-      { userid: userId, friendid: friendId },
-      { userid: friendId, friendid: userId },
-    ])
+    .insert([{ userid: userId, friendid: friendId }])
     .select();
 
   return { data, error };
