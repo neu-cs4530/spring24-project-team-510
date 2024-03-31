@@ -25,7 +25,7 @@ import {
   ButtonGroup,
   PinInputField,
 } from '@chakra-ui/react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import useTownController from '../../hooks/useTownController';
 import * as db from '../../../../townService/src/api/Player/db';
 import { request } from 'http';
@@ -39,96 +39,136 @@ type FriendRequest = {
 export default function FriendList() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const townController = useTownController();
+  const thisPlayerId = townController.userID;
 
   const [friends, setFriends] = useState<string[]>([]);
   const [groupName, setGroupName] = useState('');
-  const [groupLeader, setGroupLeader] = useState(0);
+  const [groupLeader, setGroupLeader] = useState('');
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
 
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [groupRequests, setGroupRequests] = useState<string[]>([]);
   const [teleportRequests, setTeleportRequests] = useState<string[]>([]);
 
-  const [playerId, setPlayerId] = useState<string>("");
+  const [playerId, setPlayerId] = useState<string>('');
 
-  const getFriends = async () => {
-    const { data, error } = await db.getFriends(townController.userID);
-    if (error) {
-      throw new Error('error getting friends');
-    }
-    setFriends(data?.map(friend => friend.friendid) as string[]);
-  };
+  useEffect(() => {
+    const getFriends = async () => {
+      const { data, error } = await db.getFriends(thisPlayerId);
+      if (error) {
+        throw new Error('error getting friends');
+      }
+      setFriends(data?.map(friend => friend.friendid) as string[]);
+    };
+    getFriends();
+  }, [thisPlayerId, isOpen]);
 
-  const getGroupInfo = async () => {
-    const groupId = (await db.getGroupIdByPlayerId(townController.userID)).groupId;
-    const { data, error } = await db.getGroupById(groupId);
-    if (error) {
-      throw new Error('error getting group info');
-    }
-    setGroupName(data.groupname as string);
-    setGroupLeader(data.adminid as number);
-  };
+  useEffect(() => {
+    const getGroupInfo = async () => {
+      const groupId = (await db.getGroupIdByPlayerId(thisPlayerId)).groupId;
+      const { data, error } = await db.getGroupById(groupId);
+      if (error) {
+        setGroupName('');
+        setGroupLeader('');
+      } else {
+        setGroupName(data.groupname as string);
+        setGroupLeader(data.adminid as string);
+      }
+    };
+    getGroupInfo();
+  }, [thisPlayerId, isOpen]);
 
-  const getGroupMembers = async () => {
-    const groupId = (await db.getGroupIdByPlayerId(townController.userID)).groupId;
-    const { data, error } = await db.getGroupMembers(groupId);
-    if (error) {
-      throw new Error('error getting group members');
-    }
-    setGroupMembers(data?.map(member => member.memberid) as string[]);
-  };
-
-  const getFriendRequests = async () => {
-    const { data, error } = await db.getReceivedFriendRequests(townController.userID);
-    if (error) {
-      throw new Error('error getting friend requests');
-    }
-
-    const friendRequests = await Promise.all(data?.map(async (friendRequest) => {
-      const requestorName = (await getUserName(friendRequest.requestorId)).toString();
-      return {
-        requestorId: friendRequest.requestorId,
-        requestorName: requestorName
-      };
-    }) || []);
-    setFriendRequests(friendRequests as FriendRequest[]);
-  };
+  useEffect(() => {
+    const getGroupMembers = async () => {
+      const groupId = (await db.getGroupIdByPlayerId(thisPlayerId)).groupId;
+      const { data, error } = await db.getGroupMembers(groupId);
+      if (error) {
+        setGroupMembers([]);
+      } else {
+        setGroupMembers(data?.map(member => member.memberid) as string[]);
+      }
+    };
+    getGroupMembers();
+  }, [thisPlayerId, isOpen]);
 
   async function getUserName(userID: string): Promise<string> {
     const { data, error } = await db.readUserName(userID);
     if (error) {
       throw new Error('error getting username');
     }
-    return data && data[0]?.username || '';
-  };
+    return (data && data[0]?.username) || '';
+  }
 
-  const getGroupRequests = async () => {
-    const { data, error } = await db.getReceivedGroupRequests();
-    if (error) {
-      throw new Error('error getting group requests');
-    }
-    setGroupRequests(data?.map(groupRequest => groupRequest.requestorid) as string[]);
-  };
+  useEffect(() => {
+    const getFriendRequests = async () => {
+      const { data, error } = await db.getReceivedFriendRequests(thisPlayerId);
+      if (error) {
+        throw new Error('error getting friend requests');
+      }
 
-  const getTeleportRequests = async () => {
-    const { data, error } = await db.getReceivedTeleportRequests();
-    if (error) {
-      throw new Error('error getting friend requests');
-    }
-    setTeleportRequests(data?.map(teleportRequest => teleportRequest.requestorid) as string[]);
-  };
+      const curFriendRequests = await Promise.all(
+        data?.map(async friendRequest => {
+          const requestorName = (await getUserName(friendRequest.requestorId)).toString();
+          return {
+            requestorId: friendRequest.requestorId,
+            requestorName: requestorName,
+          };
+        }) || [],
+      );
+      setFriendRequests(curFriendRequests as FriendRequest[]);
+    };
+    getFriendRequests();
+  }, [thisPlayerId, isOpen]);
 
-  function FriendRequestPrompt(props: { requestorId: string; requestorName: string; }): JSX.Element {
+  useEffect(() => {
+    const getGroupRequests = async () => {
+      const { data, error } = await db.getReceivedGroupRequests(playerId);
+      if (error) {
+        throw new Error('error getting group requests');
+      }
+      setGroupRequests(data?.map(groupRequest => groupRequest.requestorid) as string[]);
+    };
+    getGroupRequests();
+  }, [playerId, isOpen]);
+
+  useEffect(() => {
+    const getTeleportRequests = async () => {
+      const { data, error } = await db.getReceivedTeleportRequests(playerId);
+      if (error) {
+        throw new Error('error getting teleport requests');
+      }
+      setTeleportRequests(data?.map(teleportRequest => teleportRequest.requestorid) as string[]);
+    };
+    getTeleportRequests();
+  }, [playerId, isOpen]);
+
+  function acceptFriendRequest(requestorId: string): void {
+    db.addFriend(townController.userID, requestorId);
+  }
+
+  function declineFriendRequest(requestorId: string): void {
+    db.deleteFriendRequest(requestorId);
+  }
+
+  function FriendRequestPrompt(props: { requestorId: string; requestorName: string }): JSX.Element {
     return (
       <Tr>
         <Td>Friend request from {props.requestorName}</Td>
         <Td>
-          <Button colorScheme='green' size='sm' variant='outline' onClick={() => acceptFriendRequest(props.requestorId)}>
+          <Button
+            colorScheme='green'
+            size='sm'
+            variant='outline'
+            onClick={() => acceptFriendRequest(props.requestorId)}>
             Accept
           </Button>
         </Td>
         <Td>
-          <Button colorScheme='red' size='sm' variant='outline' onClick={() => declineFriendRequest(props.requestorId)}>
+          <Button
+            colorScheme='red'
+            size='sm'
+            variant='outline'
+            onClick={() => declineFriendRequest(props.requestorId)}>
             Decline
           </Button>
         </Td>
@@ -144,47 +184,52 @@ export default function FriendList() {
   //   )
   // }
 
-  function acceptFriendRequest(requestorId: string): void {
-    db.addFriend(townController.userID, requestorId);
-  }
-
-  function declineFriendRequest(requestorId: string): void {
-    db.deleteFriendRequest(requestorId);
-  }
-
   const FriendRequestsList = () => {
-    getFriendRequests();
-    return <Table variant='striped' colorScheme='teal'>
-      <Thead></Thead>
-      <Tbody>
-        {friendRequests.map(friendRequest => {
-          return <FriendRequestPrompt key={friendRequest.requestorId} requestorId={friendRequest.requestorId} requestorName={friendRequest.requestorName} />;
-        })}
-      </Tbody>
-    </Table>;
-  }
+    return (
+      <Table variant='striped' colorScheme='teal'>
+        <Thead></Thead>
+        <Tbody>
+          {friendRequests.map(friendRequest => {
+            return (
+              <FriendRequestPrompt
+                key={friendRequest.requestorId}
+                requestorId={friendRequest.requestorId}
+                requestorName={friendRequest.requestorName}
+              />
+            );
+          })}
+        </Tbody>
+      </Table>
+    );
+  };
 
   const AddFriendComponent = () => {
-    return <InputGroup>
-      <InputLeftAddon>Player ID</InputLeftAddon>
-      <Input name='playerId'
-        value={playerId}
-        placeholder='type playerId here'
-        onChange={e => {
-          setPlayerId(e.target.value);
-        }}
-      />
-      <InputRightElement>
-        <Button onClick={async () => {
-          try {
-            await db.createFriendRequest(townController.userID, playerId);
-          } catch (error) {
-            console.error('Error sending friend request:', error);
-          }
-        }}>Add</Button>
-      </InputRightElement>
-    </InputGroup>
-  }
+    return (
+      <InputGroup>
+        <InputLeftAddon>Player ID</InputLeftAddon>
+        <Input
+          name='playerId'
+          value={playerId}
+          placeholder='type playerId here'
+          onChange={e => {
+            setPlayerId(e.target.value);
+          }}
+        />
+        <InputRightElement>
+          <Button
+            onClick={async () => {
+              try {
+                await db.createFriendRequest(townController.userID, playerId);
+              } catch (error) {
+                console.error('Error sending friend request:', error);
+              }
+            }}>
+            Add
+          </Button>
+        </InputRightElement>
+      </InputGroup>
+    );
+  };
 
   return (
     <>

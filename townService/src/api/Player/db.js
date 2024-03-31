@@ -214,7 +214,7 @@ export async function updateMemberAdminStatus(groupId, memberId, isAdmin) {
 export async function createFriendRequest(requestorId, receiverId) {
   const { data, error } = await supabase
     .from('friendrequests')
-    .insert([{ requestorid: requestorId, receiverid: receiverId, requeststatus: 'PENDING'}])
+    .insert([{ requestorid: requestorId, receiverid: receiverId, requeststatus: 'PENDING' }])
     .select();
 
   console.log('Friend request sent');
