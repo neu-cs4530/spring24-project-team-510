@@ -66,8 +66,10 @@ export async function deleteUser(userId) {
 export async function addFriend(userId, friendId) {
   const { data, error } = await supabase
     .from('friends')
-    .insert([{ userid: userId, friendid: friendId },
-    { userid: friendId, friendid: userId },])
+    .insert([
+      { userid: userId, friendid: friendId },
+      { userid: friendId, friendid: userId },
+    ])
     .select();
 
   return { data, error };
@@ -238,8 +240,6 @@ export async function getFriendRequestorId(friend) {
   return { data, error };
 }
 
-
-
 export async function updateFriendRequestStatus(requestorId, newStatus) {
   const { data, error } = await supabase
     .from('friendrequests')
@@ -332,6 +332,16 @@ export async function deleteTeleportRequest(requestId) {
   const { data, error } = await supabase
     .from('teleportrequests')
     .delete()
+    .eq('requestid', requestId)
+    .select();
+
+  return { data, error };
+}
+
+export async function updateTeleportRequestLocation(requestId, new_x, new_y) {
+  const { data, error } = await supabase
+    .from('teleportrequests')
+    .update({ receiver_x: new_x, receiver_y: new_y })
     .eq('requestid', requestId)
     .select();
 

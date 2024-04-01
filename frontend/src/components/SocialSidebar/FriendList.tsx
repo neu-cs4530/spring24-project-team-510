@@ -1,4 +1,3 @@
-
 import {
   Tabs,
   TabList,
@@ -31,10 +30,18 @@ import useTownController from '../../hooks/useTownController';
 import * as db from '../../../../townService/src/api/Player/db';
 import { request } from 'http';
 import { get } from 'lodash';
+import { createClient } from '@supabase/supabase-js';
+import TownController from '../../classes/TownController';
 
 type FriendRequest = {
   requestorId: string;
   requestorName: string;
+};
+
+type TeleportRequest = {
+  requestorId: string;
+  requestorName: string;
+  requestId: bigint;
 };
 
 export default function FriendList() {
@@ -49,9 +56,38 @@ export default function FriendList() {
 
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [groupRequests, setGroupRequests] = useState<string[]>([]);
-  const [teleportRequests, setTeleportRequests] = useState<string[]>([]);
+  const [teleportRequests, setTeleportRequests] = useState<TeleportRequest[]>([]);
 
   const [playerId, setPlayerId] = useState<string>('');
+
+  useEffect(() => {
+    const supabase = createClient(
+      'https://bvevhrvfqwciuokadumx.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZXZocnZmcXdjaXVva2FkdW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTA2MjM0NDMsImV4cCI6MjAyNjE5OTQ0M30.iPleffF5HuzrL65TjqmaHVevm4_5jAAUmbPig50Jbog',
+    );
+
+    const subscription = supabase
+      .channel('room1')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'teleportRequest' },
+        payload => {
+          if ('receiver_x' in payload.new) {
+            if (payload.new.requestorid === thisPlayerId) {
+              townController.ourPlayer.location.x = payload.new.receiver_x;
+              townController.ourPlayer.location.y = payload.new.receiver_y;
+              db.deleteFriendRequest(payload.new.requestid);
+            } else console.log('Teleport request not for this player');
+          } else console.log('Teleport request not for this player');
+        },
+      )
+      .subscribe();
+
+    // Clean up the subscription when the component unmounts
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [thisPlayerId, townController]);
 
   useEffect(() => {
     const getFriends = async () => {
@@ -118,6 +154,25 @@ export default function FriendList() {
     setFriendRequests(curFriendRequests as FriendRequest[]);
   };
 
+  const getTeleportRequests = async () => {
+    const { data, error } = await db.getReceivedTeleportRequests(townController.userID);
+    if (error) {
+      throw new Error('error getting teleport requests');
+    }
+
+    const curTeleportRequests = await Promise.all(
+      data?.map(async teleportRequest => {
+        const requestorName = (await getUserName(teleportRequest.requestorid)).toString();
+        return {
+          requestorId: teleportRequest.requestorId,
+          requestorName: requestorName,
+          requestId: teleportRequest.requestid,
+        };
+      }) || [],
+    );
+    setTeleportRequests(curTeleportRequests as TeleportRequest[]);
+  };
+
   useEffect(() => {
     getFriendRequests();
   }, [thisPlayerId, isOpen]);
@@ -134,13 +189,6 @@ export default function FriendList() {
   }, [playerId, isOpen]);
 
   useEffect(() => {
-    const getTeleportRequests = async () => {
-      const { data, error } = await db.getReceivedTeleportRequests(playerId);
-      if (error) {
-        throw new Error('error getting teleport requests');
-      }
-      setTeleportRequests(data?.map(teleportRequest => teleportRequest.requestorid) as string[]);
-    };
     getTeleportRequests();
   }, [playerId, isOpen]);
 
@@ -153,6 +201,20 @@ export default function FriendList() {
   async function declineFriendRequest(requestorId: string) {
     await db.deleteFriendRequest(requestorId);
     getFriendRequests();
+  }
+
+  async function acceptTeleportRequest(requestId: bigint) {
+    await db.updateTeleportRequestLocation(
+      requestId,
+      townController.ourPlayer.location.x,
+      townController.ourPlayer.location.y,
+    );
+    getTeleportRequests();
+  }
+
+  async function declineTeleportRequest(requestId: bigint) {
+    await db.deleteTeleportRequest(requestId);
+    getTeleportRequests();
   }
 
   function FriendRequestPrompt(props: { requestorId: string; requestorName: string }): JSX.Element {
@@ -181,6 +243,36 @@ export default function FriendList() {
     );
   }
 
+  function TeleportRequestPrompt(props: {
+    requestorId: string;
+    requestorName: string;
+    requestId: bigint;
+  }): JSX.Element {
+    return (
+      <Tr>
+        <Td>Teleport request from {props.requestorName}</Td>
+        <Td>
+          <Button
+            colorScheme='green'
+            size='sm'
+            variant='outline'
+            onClick={() => acceptTeleportRequest(props.requestId)}>
+            Accept
+          </Button>
+        </Td>
+        <Td>
+          <Button
+            colorScheme='red'
+            size='sm'
+            variant='outline'
+            onClick={() => declineTeleportRequest(props.requestId)}>
+            Decline
+          </Button>
+        </Td>
+      </Tr>
+    );
+  }
+
   // function acceptFriendRequestButton(props: { onClick: () => void }) {
   //   return (
   //     <Button colorScheme='green' size='sm' variant='outline' onClick={props.onClick}>
@@ -200,6 +292,26 @@ export default function FriendList() {
                 key={friendRequest.requestorId}
                 requestorId={friendRequest.requestorId}
                 requestorName={friendRequest.requestorName}
+              />
+            );
+          })}
+        </Tbody>
+      </Table>
+    );
+  };
+
+  const TeleportRequestsList = () => {
+    return (
+      <Table variant='striped' colorScheme='teal'>
+        <Thead></Thead>
+        <Tbody>
+          {teleportRequests.map(teleportRequest => {
+            return (
+              <TeleportRequestPrompt
+                key={teleportRequest.requestorId}
+                requestorId={teleportRequest.requestorId}
+                requestorName={teleportRequest.requestorName}
+                requestId={teleportRequest.requestId}
               />
             );
           })}
@@ -443,33 +555,8 @@ export default function FriendList() {
                         <Table variant='striped' colorScheme='teal'>
                           <Thead></Thead>
                           <Tbody>
-                            <Tr>
-                              {/* TODO: render Teleport Request as <tr> element, and implement on-click for Accept and Decline button */}
-                              <Td>Player1</Td>
-                              <Td>
-                                <Button colorScheme='green' size='sm' variant='outline'>
-                                  Accept
-                                </Button>
-                              </Td>
-                              <Td>
-                                <Button colorScheme='red' size='sm' variant='outline'>
-                                  Decline
-                                </Button>
-                              </Td>
-                            </Tr>
-                            <Tr>
-                              <Td>Player2</Td>
-                              <Td>
-                                <Button colorScheme='green' size='sm' variant='outline'>
-                                  Accept
-                                </Button>
-                              </Td>
-                              <Td>
-                                <Button colorScheme='red' size='sm' variant='outline'>
-                                  Decline
-                                </Button>
-                              </Td>
-                            </Tr>
+                            {/* TODO: render Teleport Request as <tr> element, and implement on-click for Accept and Decline button */}
+                            {TeleportRequestsList()}
                           </Tbody>
                         </Table>
                       </TabPanel>
