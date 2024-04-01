@@ -1,4 +1,3 @@
-
 import {
   Tabs,
   TabList,
@@ -37,6 +36,13 @@ type FriendRequest = {
   requestorName: string;
 };
 
+type GroupRequest = {
+  requestId: number;
+  groupId: number;
+  requestorId: string;
+  requestorName: string;
+};
+
 export default function FriendList() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const townController = useTownController();
@@ -48,7 +54,8 @@ export default function FriendList() {
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
 
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
-  const [groupRequests, setGroupRequests] = useState<string[]>([]);
+  const [groupRequests, setGroupRequests] = useState<GroupRequest[]>([]);
+
   const [teleportRequests, setTeleportRequests] = useState<string[]>([]);
 
   const [playerId, setPlayerId] = useState<string>('');
@@ -122,16 +129,32 @@ export default function FriendList() {
     getFriendRequests();
   }, [thisPlayerId, isOpen]);
 
+  const getGroupRequests = async () => {
+    const { data, error } = await db.getReceivedGroupRequests(thisPlayerId);
+    if (error) {
+      throw new Error('error getting group requests');
+    }
+
+    const curGroupRequests = await Promise.all(
+      data?.map(async groupRequest => {
+        const requestorName = (await getUserName(groupRequest.requestorid)).toString();
+        const requestId = groupRequest.requestId;
+        const groupId = groupRequest.requestorid;
+        const requestorId = groupRequest.requestorid.toString();
+        return {
+          requestId: requestId,
+          groupId: groupId,
+          requestorId: requestorId,
+          requestorName: requestorName,
+        };
+      }) || [],
+    );
+    setGroupRequests(curGroupRequests as GroupRequest[]);
+  };
+
   useEffect(() => {
-    const getGroupRequests = async () => {
-      const { data, error } = await db.getReceivedGroupRequests(playerId);
-      if (error) {
-        throw new Error('error getting group requests');
-      }
-      setGroupRequests(data?.map(groupRequest => groupRequest.requestorid) as string[]);
-    };
     getGroupRequests();
-  }, [playerId, isOpen]);
+  }, [thisPlayerId, isOpen]);
 
   useEffect(() => {
     const getTeleportRequests = async () => {
@@ -233,6 +256,69 @@ export default function FriendList() {
           </Button>
         </InputRightElement>
       </InputGroup>
+    );
+  };
+
+  async function acceptGroupRequest(requestId: number, groupId: number) {
+    await db.addGroupMember(groupId, townController.userID);
+    await db.deleteGroupRequest(requestId);
+    db.getReceivedGroupRequests(townController.userID);
+  }
+
+  async function declineGroupRequest(requestId: number) {
+    await db.deleteGroupRequest(requestId);
+    db.getReceivedGroupRequests(townController.userID);
+  }
+
+  function GroupRequestPrompt(props: {
+    requestId: number;
+    groupId: number;
+    requestorId: string;
+    requestorName: string;
+  }): JSX.Element {
+    return (
+      <Tr>
+        <Td>Group join request from {props.requestorName}</Td>
+        <Td>
+          <Button
+            colorScheme='green'
+            size='sm'
+            variant='outline'
+            onClick={() => acceptGroupRequest(props.requestId, props.groupId)}>
+            Accept
+          </Button>
+        </Td>
+        <Td>
+          <Button
+            colorScheme='red'
+            size='sm'
+            variant='outline'
+            onClick={() => declineGroupRequest(props.requestId)}>
+            Decline
+          </Button>
+        </Td>
+      </Tr>
+    );
+  }
+
+  const GroupRequestsList = () => {
+    return (
+      <Table variant='striped' colorScheme='teal'>
+        <Thead></Thead>
+        <Tbody>
+          {groupRequests.map(groupRequest => {
+            return (
+              <GroupRequestPrompt
+                key={groupRequest.requestId}
+                requestId={groupRequest.requestId}
+                groupId={groupRequest.groupId}
+                requestorId={groupRequest.requestorId}
+                requestorName={groupRequest.requestorName}
+              />
+            );
+          })}
+        </Tbody>
+      </Table>
     );
   };
 
@@ -396,6 +482,7 @@ export default function FriendList() {
                           <Thead></Thead>
                           <Tbody>
                             {/* TODO: render Group Request as <tr> element, and implement on-click for Accept and Decline button */}
+                            {GroupRequestsList()}
                             <Tr>
                               <Td>Player1</Td>
                               <Td>
