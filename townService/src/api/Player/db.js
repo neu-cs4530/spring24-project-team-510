@@ -238,6 +238,8 @@ export async function getFriendRequestorId(friend) {
   return { data, error };
 }
 
+
+
 export async function updateFriendRequestStatus(requestorId, newStatus) {
   const { data, error } = await supabase
     .from('friendrequests')
