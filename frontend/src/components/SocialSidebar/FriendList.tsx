@@ -31,7 +31,8 @@ import * as db from '../../../../townService/src/api/Player/db';
 import { request } from 'http';
 import { get } from 'lodash';
 import { createClient } from '@supabase/supabase-js';
-import TownController from '../../classes/TownController';
+import { PlayerID } from '../../../../shared/types/CoveyTownSocket';
+import TownGameScene from '../Town/TownGameScene';
 
 type FriendRequest = {
   requestorId: string;
@@ -59,35 +60,6 @@ export default function FriendList() {
   const [teleportRequests, setTeleportRequests] = useState<TeleportRequest[]>([]);
 
   const [playerId, setPlayerId] = useState<string>('');
-
-  useEffect(() => {
-    const supabase = createClient(
-      'https://bvevhrvfqwciuokadumx.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZXZocnZmcXdjaXVva2FkdW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTA2MjM0NDMsImV4cCI6MjAyNjE5OTQ0M30.iPleffF5HuzrL65TjqmaHVevm4_5jAAUmbPig50Jbog',
-    );
-
-    const subscription = supabase
-      .channel('room1')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'teleportRequest' },
-        payload => {
-          if ('receiver_x' in payload.new) {
-            if (payload.new.requestorid === thisPlayerId) {
-              townController.ourPlayer.location.x = payload.new.receiver_x;
-              townController.ourPlayer.location.y = payload.new.receiver_y;
-              db.deleteFriendRequest(payload.new.requestid);
-            } else console.log('Teleport request not for this player');
-          } else console.log('Teleport request not for this player');
-        },
-      )
-      .subscribe();
-
-    // Clean up the subscription when the component unmounts
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [thisPlayerId, townController]);
 
   useEffect(() => {
     const getFriends = async () => {
@@ -155,16 +127,17 @@ export default function FriendList() {
   };
 
   const getTeleportRequests = async () => {
-    const { data, error } = await db.getReceivedTeleportRequests(townController.userID);
+    const { data, error } = await db.getReceivedTeleportRequests(thisPlayerId);
     if (error) {
       throw new Error('error getting teleport requests');
     }
 
     const curTeleportRequests = await Promise.all(
       data?.map(async teleportRequest => {
-        const requestorName = (await getUserName(teleportRequest.requestorid)).toString();
+        const requestorId: string = teleportRequest.requestorid;
+        const requestorName = (await getUserName(requestorId)).toString();
         return {
-          requestorId: teleportRequest.requestorId,
+          requestorId: requestorId,
           requestorName: requestorName,
           requestId: teleportRequest.requestid,
         };
@@ -203,12 +176,12 @@ export default function FriendList() {
     getFriendRequests();
   }
 
-  async function acceptTeleportRequest(requestId: bigint) {
-    await db.updateTeleportRequestLocation(
-      requestId,
-      townController.ourPlayer.location.x,
-      townController.ourPlayer.location.y,
-    );
+  async function acceptTeleportRequest(requestId: bigint, requestorId: string) {
+    const newLocation = townController.getPlayer(requestorId as PlayerID).location;
+    onClose();
+    townController.emitMovement(newLocation);
+    townController.townGameScene.moveOurPlayerTo(newLocation);
+    await db.deleteTeleportRequest(requestId);
     getTeleportRequests();
   }
 
@@ -256,7 +229,7 @@ export default function FriendList() {
             colorScheme='green'
             size='sm'
             variant='outline'
-            onClick={() => acceptTeleportRequest(props.requestId)}>
+            onClick={() => acceptTeleportRequest(props.requestId, props.requestorId)}>
             Accept
           </Button>
         </Td>
