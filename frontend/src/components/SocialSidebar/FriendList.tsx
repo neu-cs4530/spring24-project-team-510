@@ -24,6 +24,7 @@ import {
   useDisclosure,
   ButtonGroup,
   PinInputField,
+  Heading,
 } from '@chakra-ui/react';
 import React, { useState, useEffect } from 'react';
 import useTownController from '../../hooks/useTownController';
@@ -571,6 +572,7 @@ export default function FriendList() {
                 <TabPanel>
                   {/* implement on-click for Add button here */}
                   {AddFriendComponent()}
+                  <h3>My ID: {townController.ourPlayer.id}</h3>
                 </TabPanel>
               </TabPanels>
             </Tabs>
