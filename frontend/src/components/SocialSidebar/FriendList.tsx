@@ -476,7 +476,7 @@ export default function FriendList() {
     <>
       <Button onClick={onOpen}>Friends</Button>
 
-      <Modal isOpen={isOpen} onClose={onClose} size='lg'>
+      <Modal isOpen={isOpen} onClose={onClose} size='2xl'>
         <ModalOverlay />
         <ModalContent>
           {/* This is the content box of FriendList */}
@@ -498,9 +498,6 @@ export default function FriendList() {
                     <Thead>
                       <Tr>
                         <Th>Name</Th>
-                        <Th>Status</Th>
-                        <Th>Invite</Th>
-                        <Th>Teleport</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
@@ -552,30 +549,20 @@ export default function FriendList() {
                       <Tab>Teleport Request</Tab>
                     </TabList>
                     <TabPanels>
-                      {/* This is Friend Request Panel */}
                       <TabPanel>
+                        {/* This is Friend Request Panel */}
                         {/* TODO: render Friend Request, and implement on-click for Accept and Decline button */}
                         {FriendRequestsList()}
                       </TabPanel>
                       <TabPanel>
                         {/* This is Group Request Panel */}
-                        <Table variant='striped' colorScheme='teal'>
-                          <Thead></Thead>
-                          <Tbody>
-                            {/* TODO: render Group Request as <tr> element, and implement on-click for Accept and Decline button */}
-                            {GroupRequestsList()}
-                          </Tbody>
-                        </Table>
+                        {/* TODO: render Group Request as <tr> element, and implement on-click for Accept and Decline button */}
+                        {GroupRequestsList()}
                       </TabPanel>
                       <TabPanel>
                         {/* This is Teleport Request Panel */}
-                        <Table variant='striped' colorScheme='teal'>
-                          <Thead></Thead>
-                          <Tbody>
-                            {/* TODO: render Teleport Request as <tr> element, and implement on-click for Accept and Decline button */}
-                            {TeleportRequestsList()}
-                          </Tbody>
-                        </Table>
+                        {/* TODO: render Teleport Request as <tr> element, and implement on-click for Accept and Decline button */}
+                        {TeleportRequestsList()}
                       </TabPanel>
                     </TabPanels>
                   </Tabs>
