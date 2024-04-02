@@ -39,10 +39,22 @@ type FriendRequest = {
   requestorName: string;
 };
 
+type GroupRequest = {
+  requestId: bigint;
+  groupId: bigint;
+  requestorId: string;
+  requestorName: string;
+};
+
 type TeleportRequest = {
   requestorId: string;
   requestorName: string;
   requestId: bigint;
+};
+
+type Friend = {
+  friendId: string;
+  friendName: string;
 };
 
 export default function FriendList() {
@@ -50,55 +62,16 @@ export default function FriendList() {
   const townController = useTownController();
   const thisPlayerId = townController.userID;
 
-  const [friends, setFriends] = useState<string[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [groupName, setGroupName] = useState('');
   const [groupLeader, setGroupLeader] = useState('');
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
 
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
-  const [groupRequests, setGroupRequests] = useState<string[]>([]);
+  const [groupRequests, setGroupRequests] = useState<GroupRequest[]>([]);
   const [teleportRequests, setTeleportRequests] = useState<TeleportRequest[]>([]);
 
   const [playerId, setPlayerId] = useState<string>('');
-
-  useEffect(() => {
-    const getFriends = async () => {
-      const { data, error } = await db.getFriends(thisPlayerId);
-      if (error) {
-        throw new Error('error getting friends');
-      }
-      setFriends(data?.map(friend => friend.friendid) as string[]);
-    };
-    getFriends();
-  }, [thisPlayerId, isOpen]);
-
-  useEffect(() => {
-    const getGroupInfo = async () => {
-      const groupId = (await db.getGroupIdByPlayerId(thisPlayerId)).groupId;
-      const { data, error } = await db.getGroupById(groupId);
-      if (error) {
-        setGroupName('');
-        setGroupLeader('');
-      } else {
-        setGroupName(data.groupname as string);
-        setGroupLeader(data.adminid as string);
-      }
-    };
-    getGroupInfo();
-  }, [thisPlayerId, isOpen]);
-
-  useEffect(() => {
-    const getGroupMembers = async () => {
-      const groupId = (await db.getGroupIdByPlayerId(thisPlayerId)).groupId;
-      const { data, error } = await db.getGroupMembers(groupId);
-      if (error) {
-        setGroupMembers([]);
-      } else {
-        setGroupMembers(data?.map(member => member.memberid) as string[]);
-      }
-    };
-    getGroupMembers();
-  }, [thisPlayerId, isOpen]);
 
   async function getUserName(userID: string): Promise<string> {
     const { data, error } = await db.readUserName(userID);
@@ -107,6 +80,23 @@ export default function FriendList() {
     }
     return (data && data[0]?.username) || '';
   }
+
+  const getFriends = async () => {
+    const { data, error } = await db.getFriends(thisPlayerId);
+    if (error) {
+      throw new Error('error getting friends');
+    }
+    const curFriends = await Promise.all(
+      data?.map(async friend => {
+        const friendName = (await getUserName(friend.friendid)).toString();
+        return {
+          friendId: friend.friendid,
+          friendName: friendName,
+        };
+      }) || [],
+    );
+    setFriends(curFriends as Friend[]);
+  };
 
   const getFriendRequests = async () => {
     const { data, error } = await db.getReceivedFriendRequests(thisPlayerId);
@@ -124,6 +114,27 @@ export default function FriendList() {
       }) || [],
     );
     setFriendRequests(curFriendRequests as FriendRequest[]);
+  };
+
+  const getGroupRequests = async () => {
+    const { data, error } = await db.getReceivedGroupRequests(thisPlayerId);
+    if (error) {
+      throw new Error('error getting group requests');
+    }
+
+    const curGroupRequests = await Promise.all(
+      data?.map(async groupRequest => {
+        const requestorName = (await getUserName(groupRequest.requestorid)).toString();
+        const requestorId = groupRequest.requestorid;
+        return {
+          requestId: groupRequest.requestid,
+          groupId: groupRequest.groupid,
+          requestorId: requestorId,
+          requestorName: requestorName,
+        };
+      }) || [],
+    );
+    setGroupRequests(curGroupRequests as GroupRequest[]);
   };
 
   const getTeleportRequests = async () => {
@@ -147,19 +158,20 @@ export default function FriendList() {
   };
 
   useEffect(() => {
+    getFriends();
+  }, [thisPlayerId, isOpen]);
+
+  useEffect(() => {
     getFriendRequests();
   }, [thisPlayerId, isOpen]);
 
   useEffect(() => {
-    const getGroupRequests = async () => {
-      const { data, error } = await db.getReceivedGroupRequests(playerId);
-      if (error) {
-        throw new Error('error getting group requests');
-      }
-      setGroupRequests(data?.map(groupRequest => groupRequest.requestorid) as string[]);
-    };
+    getFriendRequests();
+  }, [thisPlayerId, isOpen]);
+
+  useEffect(() => {
     getGroupRequests();
-  }, [playerId, isOpen]);
+  }, [thisPlayerId, isOpen]);
 
   useEffect(() => {
     getTeleportRequests();
@@ -176,6 +188,29 @@ export default function FriendList() {
     getFriendRequests();
   }
 
+  async function acceptGroupRequest(requestId: bigint, groupId: bigint) {
+    const currentGroupId = await db.getGroupIdByPlayerId(townController.userID);
+    if (currentGroupId) {
+      await db.removeGroupMember(currentGroupId, townController.userID);
+    }
+    const addMemberResponse = await db.addGroupMember(groupId, townController.userID);
+    if (addMemberResponse.error) {
+      console.error('Error adding group member:', addMemberResponse.error);
+      return;
+    }
+    const deleteRequestResponse = await db.deleteGroupRequest(requestId);
+    if (deleteRequestResponse.error) {
+      console.error('Error deleting group request:', deleteRequestResponse.error);
+      return;
+    }
+    getGroupRequests();
+  }
+
+  async function declineGroupRequest(requestId: bigint) {
+    await db.deleteGroupRequest(requestId);
+    getGroupRequests();
+  }
+
   async function acceptTeleportRequest(requestId: bigint, requestorId: string) {
     const newLocation = townController.getPlayer(requestorId as PlayerID).location;
     onClose();
@@ -188,6 +223,80 @@ export default function FriendList() {
   async function declineTeleportRequest(requestId: bigint) {
     await db.deleteTeleportRequest(requestId);
     getTeleportRequests();
+  }
+
+  async function createGroupRequest(friendId: string) {
+    let groupId = await db.getGroupIdByPlayerId(townController.ourPlayer.id);
+    if (groupId) {
+      await db.sendGroupRequest(groupId, townController.ourPlayer.id, friendId);
+      console.log('Group request sent' + groupId);
+    } else if (groupId === null) {
+      groupId = await db.createGroup('Covey.Town', townController.ourPlayer.id);
+      db.addGroupMember(groupId, townController.ourPlayer.id, true);
+      console.log('Group created' + groupId);
+      if (groupId) {
+        await db.sendGroupRequest(groupId, townController.ourPlayer.id, friendId);
+        console.log('Group request sent' + groupId);
+      }
+    }
+  }
+
+  function FriendPrompt(props: { friendId: string; friendName: string }): JSX.Element {
+    return (
+      <Tr>
+        <Td>{props.friendName}</Td>
+        <Td>Online</Td>
+        <Td>
+          <Button
+            colorScheme='green'
+            size='sm'
+            variant='outline'
+            onClick={() => createGroupRequest(props.friendId)}>
+            Invite
+          </Button>
+        </Td>
+        <Td>
+          <Button
+            colorScheme='red'
+            size='sm'
+            variant='outline'
+            onClick={() => db.createTeleportRequest(townController.ourPlayer.id, props.friendId)}>
+            Teleport
+          </Button>
+        </Td>
+      </Tr>
+    );
+  }
+
+  function GroupRequestPrompt(props: {
+    requestId: bigint;
+    groupId: bigint;
+    requestorId: string;
+    requestorName: string;
+  }): JSX.Element {
+    return (
+      <Tr>
+        <Td>Group join request from {props.requestorName}</Td>
+        <Td>
+          <Button
+            colorScheme='green'
+            size='sm'
+            variant='outline'
+            onClick={() => acceptGroupRequest(props.requestId, props.groupId)}>
+            Accept
+          </Button>
+        </Td>
+        <Td>
+          <Button
+            colorScheme='red'
+            size='sm'
+            variant='outline'
+            onClick={() => declineGroupRequest(props.requestId)}>
+            Decline
+          </Button>
+        </Td>
+      </Tr>
+    );
   }
 
   function FriendRequestPrompt(props: { requestorId: string; requestorName: string }): JSX.Element {
@@ -254,6 +363,25 @@ export default function FriendList() {
   //   )
   // }
 
+  const FriendsList = () => {
+    return (
+      <Table variant='striped' colorScheme='teal'>
+        <Thead></Thead>
+        <Tbody>
+          {friends.map(friend => {
+            return (
+              <FriendPrompt
+                key={friend.friendId}
+                friendId={friend.friendId}
+                friendName={friend.friendName}
+              />
+            );
+          })}
+        </Tbody>
+      </Table>
+    );
+  };
+
   const FriendRequestsList = () => {
     return (
       <Table variant='striped' colorScheme='teal'>
@@ -265,6 +393,29 @@ export default function FriendList() {
                 key={friendRequest.requestorId}
                 requestorId={friendRequest.requestorId}
                 requestorName={friendRequest.requestorName}
+              />
+            );
+          })}
+        </Tbody>
+      </Table>
+    );
+  };
+
+  const GroupRequestsList = () => {
+    return (
+      <Table variant='striped' colorScheme='teal'>
+        <Thead></Thead>
+        <Tbody>
+          {groupRequests.map(groupRequest => {
+            return (
+              <GroupRequestPrompt
+                key={
+                  groupRequest.requestId ? groupRequest.requestId.toString() : 'some-fallback-value'
+                }
+                requestId={groupRequest.requestId}
+                groupId={groupRequest.groupId}
+                requestorId={groupRequest.requestorId}
+                requestorName={groupRequest.requestorName}
               />
             );
           })}
@@ -354,76 +505,7 @@ export default function FriendList() {
                     </Thead>
                     <Tbody>
                       {/* TODO: render the friends of our player as <tr> element, and implement on-click for Invite and Teleport button */}
-                      <Tr>
-                        <Td>Player1</Td>
-                        <Td>Online</Td>
-                        <Td>
-                          <Button colorScheme='teal' variant='outline' size='sm'>
-                            Invite
-                          </Button>
-                        </Td>
-                        <Td>
-                          <Button colorScheme='teal' variant='outline' size='sm'>
-                            Teleport
-                          </Button>
-                        </Td>
-                      </Tr>
-                      <Tr>
-                        <Td>Player2</Td>
-                        <Td>Online</Td>
-                        <Td>
-                          <Button colorScheme='teal' variant='outline' size='sm'>
-                            Invite
-                          </Button>
-                        </Td>
-                        <Td>
-                          <Button colorScheme='teal' variant='outline' size='sm'>
-                            Teleport
-                          </Button>
-                        </Td>
-                      </Tr>
-                      <Tr>
-                        <Td>Player3</Td>
-                        <Td>InGame</Td>
-                        <Td>
-                          <Button isDisabled colorScheme='teal' variant='outline' size='sm'>
-                            Invite
-                          </Button>
-                        </Td>
-                        <Td>
-                          <Button isDisabled colorScheme='teal' variant='outline' size='sm'>
-                            Teleport
-                          </Button>
-                        </Td>
-                      </Tr>
-                      <Tr>
-                        <Td>Player4</Td>
-                        <Td>Offline</Td>
-                        <Td>
-                          <Button isDisabled colorScheme='teal' variant='outline' size='sm'>
-                            Invite
-                          </Button>
-                        </Td>
-                        <Td>
-                          <Button isDisabled colorScheme='teal' variant='outline' size='sm'>
-                            Teleport
-                          </Button>
-                        </Td>
-                      </Tr>
-                      <Tr>
-                        <Td>Player5</Td>
-                        <Td>Offline</Td>
-                        <Td>
-                          <Button isDisabled colorScheme='teal' variant='outline' size='sm'>
-                            Invite
-                          </Button>
-                        </Td>
-                        <Td>
-                          <Button isDisabled colorScheme='teal' variant='outline' size='sm'>
-                            Teleport
-                          </Button>
-                        </Td>
-                      </Tr>
+                      {FriendsList()}
                     </Tbody>
                   </Table>
                 </TabPanel>
@@ -481,45 +563,7 @@ export default function FriendList() {
                           <Thead></Thead>
                           <Tbody>
                             {/* TODO: render Group Request as <tr> element, and implement on-click for Accept and Decline button */}
-                            <Tr>
-                              <Td>Player1</Td>
-                              <Td>
-                                <Button colorScheme='green' size='sm' variant='outline'>
-                                  Accept
-                                </Button>
-                              </Td>
-                              <Td>
-                                <Button colorScheme='red' size='sm' variant='outline'>
-                                  Decline
-                                </Button>
-                              </Td>
-                            </Tr>
-                            <Tr>
-                              <Td>Player2</Td>
-                              <Td>
-                                <Button colorScheme='green' size='sm' variant='outline'>
-                                  Accept
-                                </Button>
-                              </Td>
-                              <Td>
-                                <Button colorScheme='red' size='sm' variant='outline'>
-                                  Decline
-                                </Button>
-                              </Td>
-                            </Tr>
-                            <Tr>
-                              <Td>Player3</Td>
-                              <Td>
-                                <Button colorScheme='green' size='sm' variant='outline'>
-                                  Accept
-                                </Button>
-                              </Td>
-                              <Td>
-                                <Button colorScheme='red' size='sm' variant='outline'>
-                                  Decline
-                                </Button>
-                              </Td>
-                            </Tr>
+                            {GroupRequestsList()}
                           </Tbody>
                         </Table>
                       </TabPanel>

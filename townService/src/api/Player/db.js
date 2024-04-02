@@ -105,10 +105,10 @@ export async function deleteFriend(userId, friendId) {
 export async function createGroup(groupName, adminId) {
   const { data, error } = await supabase
     .from('Groups')
-    .insert([{ groupname: groupName, adminrid: adminId }])
-    .select();
-
-  return { data, error };
+    .insert([{ groupname: groupName, adminid: adminId }])
+    .select('groupid')
+    .single();
+  return data.groupid;
 }
 
 export async function getAllGroups() {
@@ -175,10 +175,8 @@ export async function getGroupIdByPlayerId(playerId) {
     .select('groupid')
     .eq('memberid', playerId)
     .maybeSingle();
-  if (data) {
-    return { groupId: data.groupid, error };
-  }
-  return { groupId: null, error };
+
+  return data ? data.groupid : null;
 }
 
 export async function checkIfAdmin(groupId, memberId) {
