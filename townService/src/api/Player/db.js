@@ -188,7 +188,6 @@ export async function checkIfAdmin(groupId, memberId) {
 
   return { data, error };
 }
-
 export async function removeGroupMember(groupId, memberId) {
   const { data, error } = await supabase
     .from('groupmembers')
