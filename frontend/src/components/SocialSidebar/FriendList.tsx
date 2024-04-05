@@ -30,7 +30,7 @@ import React, { useState, useEffect } from 'react';
 import useTownController from '../../hooks/useTownController';
 import * as db from '../../../../townService/src/api/Player/db';
 import { request } from 'http';
-import { get } from 'lodash';
+import { get, set } from 'lodash';
 import { createClient } from '@supabase/supabase-js';
 import { PlayerID } from '../../../../shared/types/CoveyTownSocket';
 import TownGameScene from '../Town/TownGameScene';
@@ -160,15 +160,15 @@ export default function FriendList() {
 
   useEffect(() => {
     getFriends();
-  }, [thisPlayerId, isOpen]);
+  }, [thisPlayerId, isOpen, friendRequests]);
 
   useEffect(() => {
     getFriendRequests();
   }, [thisPlayerId, isOpen]);
 
-  useEffect(() => {
-    getFriendRequests();
-  }, [thisPlayerId, isOpen]);
+  // useEffect(() => {
+  //   getFriendRequests();
+  // }, [thisPlayerId, isOpen]);
 
   useEffect(() => {
     getGroupRequests();
