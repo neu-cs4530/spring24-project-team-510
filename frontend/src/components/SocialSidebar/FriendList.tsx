@@ -32,7 +32,7 @@ import * as db from '../../../../townService/src/api/Player/db';
 import { request } from 'http';
 import { get } from 'lodash';
 import { createClient } from '@supabase/supabase-js';
-import { PlayerID } from '../../../../shared/types/CoveyTownSocket';
+import { PlayerID, PlayerLocation } from '../../../../shared/types/CoveyTownSocket';
 import TownGameScene from '../Town/TownGameScene';
 
 type FriendRequest = {
@@ -63,6 +63,13 @@ type GroupMember = {
   memberName: string;
   isAdmin: boolean;
   groupId: bigint;
+};
+
+const hangoutRoomTeleportLocation: PlayerLocation = {
+  moving: false,
+  rotation: 'front',
+  x: 2977.8333333333076,
+  y: 90.83333333333306,
 };
 
 export default function FriendList() {
@@ -129,6 +136,19 @@ export default function FriendList() {
       }) || [],
     );
     setGroupMembers(curGroupMembers as GroupMember[]);
+  };
+
+  const getGroupLeader = async () => {
+    const groupIDofThisPlayer = await db.getGroupIdByPlayerId(thisPlayerId);
+    const { data, error } = await db.checkIfAdmin(groupIDofThisPlayer, thisPlayerId);
+    if (error) {
+      return;
+    }
+    if (data && data.isadmin) {
+      setGroupLeader(thisPlayerId as string);
+    } else {
+      return;
+    }
   };
 
   const getFriendRequests = async () => {
@@ -200,6 +220,10 @@ export default function FriendList() {
 
   useEffect(() => {
     getGroupRequests();
+  }, [thisPlayerId, isOpen]);
+
+  useEffect(() => {
+    getGroupLeader();
   }, [thisPlayerId, isOpen]);
 
   useEffect(() => {
@@ -287,6 +311,25 @@ export default function FriendList() {
     }
   }
 
+  async function createAssembleRequest() {
+    const groupId = await db.getGroupIdByPlayerId(townController.ourPlayer.id);
+    if (groupId) {
+      for (const member of groupMembers) {
+        if (!member.isAdmin) {
+          await db.createTeleportRequest(townController.ourPlayer.id, member.memberId);
+          console.log('Assemble request sent' + groupId);
+        }
+      }
+    }
+  }
+
+  async function assembleAtHangoutRoom() {
+    onClose();
+    townController.emitMovement(hangoutRoomTeleportLocation);
+    townController.townGameScene.moveOurPlayerTo(hangoutRoomTeleportLocation);
+    createAssembleRequest();
+  }
+
   function FriendPrompt(props: { friendId: string; friendName: string }): JSX.Element {
     return (
       <Tr>
@@ -320,9 +363,18 @@ export default function FriendList() {
     groupId: bigint;
     isAdmin: boolean;
   }): JSX.Element {
+    if (props.isAdmin) {
+      return (
+        <Tr>
+          <Td>{props.groupMemberName}</Td>
+          <Td>Group Leader</Td>
+        </Tr>
+      );
+    }
     return (
       <Tr>
         <Td>{props.groupMemberName}</Td>
+        <Td></Td>
       </Tr>
     );
   }
@@ -422,6 +474,8 @@ export default function FriendList() {
   // }
 
   const FriendsList = () => {
+    console.log(thisPlayerId);
+    console.log(groupLeader);
     return (
       <Table variant='striped' colorScheme='teal'>
         <Thead></Thead>
@@ -575,9 +629,8 @@ export default function FriendList() {
                 <TabPanel>
                   <Table variant='striped' colorScheme='teal'>
                     <Thead>
-                      <Tr>
-                        <Th>Name</Th>
-                      </Tr>
+                      <Tr>{friends.length > 0 && <Th>Name</Th>}</Tr>
+                      <Tr>{friends.length === 0 && <Th>No friends</Th>}</Tr>
                     </Thead>
                     <Tbody>
                       {/* TODO: render the friends of our player as <tr> element, and implement on-click for Invite and Teleport button */}
@@ -598,9 +651,22 @@ export default function FriendList() {
                       onClick={async () => leaveGroup(await db.getGroupIdByPlayerId(thisPlayerId))}>
                       Leave
                     </Button>
-                    <Button colorScheme='green' size='sm' variant='outline'>
+                    <Button
+                      colorScheme='green'
+                      size='sm'
+                      variant='outline'
+                      onClick={async () => createAssembleRequest()}>
                       Assemble
                     </Button>
+                    {groupLeader === thisPlayerId && (
+                      <Button
+                        colorScheme='green'
+                        size='sm'
+                        variant='outline'
+                        onClick={async () => assembleAtHangoutRoom()}>
+                        Hangout Room
+                      </Button>
+                    )}
                   </ButtonGroup>
                 </TabPanel>
                 <TabPanel>
