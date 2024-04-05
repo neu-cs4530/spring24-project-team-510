@@ -23,6 +23,7 @@ import {
   ModalCloseButton,
   useDisclosure,
   ButtonGroup,
+  useToast,
   PinInputField,
   Heading,
 } from '@chakra-ui/react';
@@ -499,7 +500,9 @@ export default function FriendList() {
   const GroupMembersList = () => {
     return (
       <Table variant='striped' colorScheme='teal'>
-        <Thead></Thead>
+        <Thead>
+          <Tr>{groupMembers.length === 0 && <Th>No Group Members</Th>}</Tr>
+        </Thead>
         <Tbody>
           {groupMembers.map(groupMember => {
             return (
@@ -520,7 +523,9 @@ export default function FriendList() {
   const FriendRequestsList = () => {
     return (
       <Table variant='striped' colorScheme='teal'>
-        <Thead></Thead>
+        <Thead>
+          <Tr>{friendRequests.length === 0 && <Th>No Friend Request</Th>}</Tr>
+        </Thead>
         <Tbody>
           {friendRequests.map(friendRequest => {
             return (
@@ -539,7 +544,9 @@ export default function FriendList() {
   const GroupRequestsList = () => {
     return (
       <Table variant='striped' colorScheme='teal'>
-        <Thead></Thead>
+        <Thead>
+          <Tr>{groupRequests.length === 0 && <Th>No Group Request</Th>}</Tr>
+        </Thead>
         <Tbody>
           {groupRequests.map(groupRequest => {
             return (
@@ -562,7 +569,9 @@ export default function FriendList() {
   const TeleportRequestsList = () => {
     return (
       <Table variant='striped' colorScheme='teal'>
-        <Thead></Thead>
+        <Thead>
+          <Tr>{teleportRequests.length === 0 && <Th>No Teleport Request</Th>}</Tr>
+        </Thead>
         <Tbody>
           {teleportRequests.map(teleportRequest => {
             return (
@@ -615,7 +624,7 @@ export default function FriendList() {
         <ModalOverlay />
         <ModalContent>
           {/* This is the content box of FriendList */}
-          <ModalHeader>Friends Menu</ModalHeader>
+          <ModalHeader>Friend Menu</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             {/* This is tabswitch, no need to add on-click */}
@@ -625,10 +634,10 @@ export default function FriendList() {
               colorScheme='green'
               onChange={index => setTabIndex(index)}>
               <TabList>
-                <Tab>Friends</Tab>
-                <Tab>Group</Tab>
+                <Tab>Friend List</Tab>
+                <Tab>My Group</Tab>
                 <Tab>Requests</Tab>
-                <Tab>Add</Tab>
+                <Tab>Add Friend</Tab>
               </TabList>
               {/* This is the content of Friends tab */}
               <TabPanels>

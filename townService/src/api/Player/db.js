@@ -29,6 +29,12 @@ export async function readUserName(userId) {
   return { data, error };
 }
 
+export async function readUserStatus(userId) {
+  const { data, error } = await supabase.from('users').select('status').eq('userid', userId);
+
+  return { data, error };
+}
+
 export async function getUsers() {
   const { data, error } = await supabase.from('users').select('*');
 
