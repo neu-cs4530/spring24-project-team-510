@@ -120,7 +120,7 @@ export default class Town {
     const newPlayer = new Player(userName, socket.to(this._townID));
     this._players.push(newPlayer);
     // Add the new player to the database
-    await db.createUser(newPlayer.id, userName, 'ONLINE');
+    await db.createUser(newPlayer.id, userName, true);
 
     this._connectedSockets.add(socket);
 
