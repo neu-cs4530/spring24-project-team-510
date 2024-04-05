@@ -58,6 +58,13 @@ type Friend = {
   friendName: string;
 };
 
+type GroupMember = {
+  memberId: string;
+  memberName: string;
+  isAdmin: boolean;
+  groupId: bigint;
+};
+
 export default function FriendList() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const townController = useTownController();
@@ -66,7 +73,7 @@ export default function FriendList() {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [groupName, setGroupName] = useState('');
   const [groupLeader, setGroupLeader] = useState('');
-  const [groupMembers, setGroupMembers] = useState<string[]>([]);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
 
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [groupRequests, setGroupRequests] = useState<GroupRequest[]>([]);
@@ -97,6 +104,31 @@ export default function FriendList() {
       }) || [],
     );
     setFriends(curFriends as Friend[]);
+  };
+
+  const getGroupMembers = async () => {
+    const groupIDofThisPlayer = await db.getGroupIdByPlayerId(thisPlayerId);
+    if (groupIDofThisPlayer === null) {
+      setGroupMembers([]);
+      return;
+    }
+
+    const { data, error } = await db.getGroupMembers(groupIDofThisPlayer);
+    if (error) {
+      throw new Error('error getting group members');
+    }
+    const curGroupMembers = await Promise.all(
+      data?.map(async GroupMember => {
+        const groupMemberName = (await getUserName(GroupMember.memberid)).toString();
+        return {
+          memberId: GroupMember.memberid,
+          memberName: groupMemberName,
+          isAdmin: GroupMember.isadmin,
+          groupId: GroupMember.groupid,
+        };
+      }) || [],
+    );
+    setGroupMembers(curGroupMembers as GroupMember[]);
   };
 
   const getFriendRequests = async () => {
@@ -166,12 +198,12 @@ export default function FriendList() {
     getFriendRequests();
   }, [thisPlayerId, isOpen]);
 
-  // useEffect(() => {
-  //   getFriendRequests();
-  // }, [thisPlayerId, isOpen]);
-
   useEffect(() => {
     getGroupRequests();
+  }, [thisPlayerId, isOpen]);
+
+  useEffect(() => {
+    getGroupMembers();
   }, [thisPlayerId, isOpen]);
 
   useEffect(() => {
@@ -226,6 +258,19 @@ export default function FriendList() {
     getTeleportRequests();
   }
 
+  async function leaveGroup(groupid: bigint) {
+    const { data, error } = await db.checkIfAdmin(groupid, thisPlayerId);
+    if (error) {
+      return;
+    }
+    if (data && data.isadmin) {
+      await db.deleteGroup(groupid);
+    } else {
+      await db.removeGroupMember(groupid, thisPlayerId);
+    }
+    getGroupMembers();
+  }
+
   async function createGroupRequest(friendId: string) {
     let groupId = await db.getGroupIdByPlayerId(townController.ourPlayer.id);
     if (groupId) {
@@ -269,6 +314,18 @@ export default function FriendList() {
     );
   }
 
+  function GroupMemberPrompt(props: {
+    groupMemberId: string;
+    groupMemberName: string;
+    groupId: bigint;
+    isAdmin: boolean;
+  }): JSX.Element {
+    return (
+      <Tr>
+        <Td>{props.groupMemberName}</Td>
+      </Tr>
+    );
+  }
   function GroupRequestPrompt(props: {
     requestId: bigint;
     groupId: bigint;
@@ -375,6 +432,27 @@ export default function FriendList() {
                 key={friend.friendId}
                 friendId={friend.friendId}
                 friendName={friend.friendName}
+              />
+            );
+          })}
+        </Tbody>
+      </Table>
+    );
+  };
+
+  const GroupMembersList = () => {
+    return (
+      <Table variant='striped' colorScheme='teal'>
+        <Thead></Thead>
+        <Tbody>
+          {groupMembers.map(groupMember => {
+            return (
+              <GroupMemberPrompt
+                key={groupMember.memberId}
+                groupMemberId={groupMember.memberId}
+                groupMemberName={groupMember.memberName}
+                isAdmin={groupMember.isAdmin}
+                groupId={groupMember.groupId}
               />
             );
           })}
@@ -509,32 +587,15 @@ export default function FriendList() {
                 </TabPanel>
                 <TabPanel>
                   {/* This is content for Group tab */}
-                  <Table variant='striped' colorScheme='teal'>
-                    <Thead>
-                      <Tr>
-                        <Th fontSize='md'>Group Members</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {/* TODO: render all the group members */}
-                      <Tr>
-                        <Td>Player1</Td>
-                      </Tr>
-                      <Tr>
-                        <Td>Player2</Td>
-                      </Tr>
-                      <Tr>
-                        <Td>Player3</Td>
-                      </Tr>
-                      <Tr>
-                        <Td>Player4</Td>
-                      </Tr>
-                    </Tbody>
-                  </Table>
+                  {GroupMembersList()}
                   {/* TODO: implement on-click for Leave and Assemble button, hide those button if player is not in group, hide Assemble
                   button when the player is not the group leader */}
                   <ButtonGroup gap='4'>
-                    <Button colorScheme='green' size='sm' variant='outline'>
+                    <Button
+                      colorScheme='green'
+                      size='sm'
+                      variant='outline'
+                      onClick={async () => leaveGroup(await db.getGroupIdByPlayerId(thisPlayerId))}>
                       Leave
                     </Button>
                     <Button colorScheme='green' size='sm' variant='outline'>
