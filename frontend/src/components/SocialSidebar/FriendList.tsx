@@ -74,6 +74,8 @@ const hangoutRoomTeleportLocation: PlayerLocation = {
 
 export default function FriendList() {
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const [tabIndex, setTabIndex] = useState(0);
+  const [requestTabIndex, setRequestTabIndex] = useState(0);
   const townController = useTownController();
   const thisPlayerId = townController.userID;
 
@@ -212,27 +214,27 @@ export default function FriendList() {
 
   useEffect(() => {
     getFriends();
-  }, [thisPlayerId, isOpen]);
+  }, [thisPlayerId, isOpen, tabIndex, requestTabIndex]);
 
   useEffect(() => {
     getFriendRequests();
-  }, [thisPlayerId, isOpen]);
+  }, [thisPlayerId, isOpen, tabIndex, requestTabIndex]);
 
   useEffect(() => {
     getGroupRequests();
-  }, [thisPlayerId, isOpen]);
+  }, [thisPlayerId, isOpen, tabIndex, requestTabIndex]);
 
   useEffect(() => {
     getGroupLeader();
-  }, [thisPlayerId, isOpen]);
+  }, [thisPlayerId, isOpen, tabIndex, requestTabIndex]);
 
   useEffect(() => {
     getGroupMembers();
-  }, [thisPlayerId, isOpen]);
+  }, [thisPlayerId, isOpen, tabIndex, requestTabIndex]);
 
   useEffect(() => {
     getTeleportRequests();
-  }, [playerId, isOpen]);
+  }, [playerId, isOpen, tabIndex, requestTabIndex]);
 
   async function acceptFriendRequest(requestorId: string) {
     await db.addFriend(townController.userID, requestorId);
@@ -617,7 +619,11 @@ export default function FriendList() {
           <ModalCloseButton />
           <ModalBody>
             {/* This is tabswitch, no need to add on-click */}
-            <Tabs isFitted variant='soft-rounded' colorScheme='green'>
+            <Tabs
+              isFitted
+              variant='soft-rounded'
+              colorScheme='green'
+              onChange={index => setTabIndex(index)}>
               <TabList>
                 <Tab>Friends</Tab>
                 <Tab>Group</Tab>
@@ -670,7 +676,7 @@ export default function FriendList() {
                   </ButtonGroup>
                 </TabPanel>
                 <TabPanel>
-                  <Tabs>
+                  <Tabs onChange={index => setRequestTabIndex(index)}>
                     <TabList>
                       <Tab>Friend Request</Tab>
                       <Tab>Group Request</Tab>
