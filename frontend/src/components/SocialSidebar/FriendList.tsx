@@ -23,6 +23,7 @@ import {
   ModalCloseButton,
   useDisclosure,
   ButtonGroup,
+  useToast,
   PinInputField,
   Heading,
 } from '@chakra-ui/react';
@@ -32,7 +33,7 @@ import * as db from '../../../../townService/src/api/Player/db';
 import { request } from 'http';
 import { get, set } from 'lodash';
 import { createClient } from '@supabase/supabase-js';
-import { PlayerID } from '../../../../shared/types/CoveyTownSocket';
+import { PlayerID, PlayerLocation } from '../../../../shared/types/CoveyTownSocket';
 import TownGameScene from '../Town/TownGameScene';
 
 type FriendRequest = {
@@ -58,15 +59,31 @@ type Friend = {
   friendName: string;
 };
 
+type GroupMember = {
+  memberId: string;
+  memberName: string;
+  isAdmin: boolean;
+  groupId: bigint;
+};
+
+const hangoutRoomTeleportLocation: PlayerLocation = {
+  moving: false,
+  rotation: 'front',
+  x: 2977.8333333333076,
+  y: 90.83333333333306,
+};
+
 export default function FriendList() {
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const [tabIndex, setTabIndex] = useState(0);
+  const [requestTabIndex, setRequestTabIndex] = useState(0);
   const townController = useTownController();
   const thisPlayerId = townController.userID;
 
   const [friends, setFriends] = useState<Friend[]>([]);
   const [groupName, setGroupName] = useState('');
   const [groupLeader, setGroupLeader] = useState('');
-  const [groupMembers, setGroupMembers] = useState<string[]>([]);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
 
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [groupRequests, setGroupRequests] = useState<GroupRequest[]>([]);
@@ -97,6 +114,44 @@ export default function FriendList() {
       }) || [],
     );
     setFriends(curFriends as Friend[]);
+  };
+
+  const getGroupMembers = async () => {
+    const groupIDofThisPlayer = await db.getGroupIdByPlayerId(thisPlayerId);
+    if (groupIDofThisPlayer === null) {
+      setGroupMembers([]);
+      return;
+    }
+
+    const { data, error } = await db.getGroupMembers(groupIDofThisPlayer);
+    if (error) {
+      throw new Error('error getting group members');
+    }
+    const curGroupMembers = await Promise.all(
+      data?.map(async GroupMember => {
+        const groupMemberName = (await getUserName(GroupMember.memberid)).toString();
+        return {
+          memberId: GroupMember.memberid,
+          memberName: groupMemberName,
+          isAdmin: GroupMember.isadmin,
+          groupId: GroupMember.groupid,
+        };
+      }) || [],
+    );
+    setGroupMembers(curGroupMembers as GroupMember[]);
+  };
+
+  const getGroupLeader = async () => {
+    const groupIDofThisPlayer = await db.getGroupIdByPlayerId(thisPlayerId);
+    const { data, error } = await db.checkIfAdmin(groupIDofThisPlayer, thisPlayerId);
+    if (error) {
+      return;
+    }
+    if (data && data.isadmin) {
+      setGroupLeader(thisPlayerId as string);
+    } else {
+      return;
+    }
   };
 
   const getFriendRequests = async () => {
@@ -160,23 +215,27 @@ export default function FriendList() {
 
   useEffect(() => {
     getFriends();
-  }, [thisPlayerId, isOpen, friendRequests]);
+  }, [thisPlayerId, isOpen, tabIndex, requestTabIndex]);
 
   useEffect(() => {
     getFriendRequests();
-  }, [thisPlayerId, isOpen]);
-
-  // useEffect(() => {
-  //   getFriendRequests();
-  // }, [thisPlayerId, isOpen]);
+  }, [thisPlayerId, isOpen, tabIndex, requestTabIndex]);
 
   useEffect(() => {
     getGroupRequests();
-  }, [thisPlayerId, isOpen]);
+  }, [thisPlayerId, isOpen, tabIndex, requestTabIndex]);
+
+  useEffect(() => {
+    getGroupLeader();
+  }, [thisPlayerId, isOpen, tabIndex, requestTabIndex]);
+
+  useEffect(() => {
+    getGroupMembers();
+  }, [thisPlayerId, isOpen, tabIndex, requestTabIndex]);
 
   useEffect(() => {
     getTeleportRequests();
-  }, [playerId, isOpen]);
+  }, [playerId, isOpen, tabIndex, requestTabIndex]);
 
   async function acceptFriendRequest(requestorId: string) {
     await db.addFriend(townController.userID, requestorId);
@@ -226,6 +285,19 @@ export default function FriendList() {
     getTeleportRequests();
   }
 
+  async function leaveGroup(groupid: bigint) {
+    const { data, error } = await db.checkIfAdmin(groupid, thisPlayerId);
+    if (error) {
+      return;
+    }
+    if (data && data.isadmin) {
+      await db.deleteGroup(groupid);
+    } else {
+      await db.removeGroupMember(groupid, thisPlayerId);
+    }
+    getGroupMembers();
+  }
+
   async function createGroupRequest(friendId: string) {
     let groupId = await db.getGroupIdByPlayerId(townController.ourPlayer.id);
     if (groupId) {
@@ -240,6 +312,25 @@ export default function FriendList() {
         console.log('Group request sent' + groupId);
       }
     }
+  }
+
+  async function createAssembleRequest() {
+    const groupId = await db.getGroupIdByPlayerId(townController.ourPlayer.id);
+    if (groupId) {
+      for (const member of groupMembers) {
+        if (!member.isAdmin) {
+          await db.createTeleportRequest(townController.ourPlayer.id, member.memberId);
+          console.log('Assemble request sent' + groupId);
+        }
+      }
+    }
+  }
+
+  async function assembleAtHangoutRoom() {
+    onClose();
+    townController.emitMovement(hangoutRoomTeleportLocation);
+    townController.townGameScene.moveOurPlayerTo(hangoutRoomTeleportLocation);
+    createAssembleRequest();
   }
 
   function FriendPrompt(props: { friendId: string; friendName: string }): JSX.Element {
@@ -269,6 +360,27 @@ export default function FriendList() {
     );
   }
 
+  function GroupMemberPrompt(props: {
+    groupMemberId: string;
+    groupMemberName: string;
+    groupId: bigint;
+    isAdmin: boolean;
+  }): JSX.Element {
+    if (props.isAdmin) {
+      return (
+        <Tr>
+          <Td>{props.groupMemberName}</Td>
+          <Td>Group Leader</Td>
+        </Tr>
+      );
+    }
+    return (
+      <Tr>
+        <Td>{props.groupMemberName}</Td>
+        <Td></Td>
+      </Tr>
+    );
+  }
   function GroupRequestPrompt(props: {
     requestId: bigint;
     groupId: bigint;
@@ -365,6 +477,8 @@ export default function FriendList() {
   // }
 
   const FriendsList = () => {
+    console.log(thisPlayerId);
+    console.log(groupLeader);
     return (
       <Table variant='striped' colorScheme='teal'>
         <Thead></Thead>
@@ -383,10 +497,35 @@ export default function FriendList() {
     );
   };
 
+  const GroupMembersList = () => {
+    return (
+      <Table variant='striped' colorScheme='teal'>
+        <Thead>
+          <Tr>{groupMembers.length === 0 && <Th>No Group Members</Th>}</Tr>
+        </Thead>
+        <Tbody>
+          {groupMembers.map(groupMember => {
+            return (
+              <GroupMemberPrompt
+                key={groupMember.memberId}
+                groupMemberId={groupMember.memberId}
+                groupMemberName={groupMember.memberName}
+                isAdmin={groupMember.isAdmin}
+                groupId={groupMember.groupId}
+              />
+            );
+          })}
+        </Tbody>
+      </Table>
+    );
+  };
+
   const FriendRequestsList = () => {
     return (
       <Table variant='striped' colorScheme='teal'>
-        <Thead></Thead>
+        <Thead>
+          <Tr>{friendRequests.length === 0 && <Th>No Friend Request</Th>}</Tr>
+        </Thead>
         <Tbody>
           {friendRequests.map(friendRequest => {
             return (
@@ -405,7 +544,9 @@ export default function FriendList() {
   const GroupRequestsList = () => {
     return (
       <Table variant='striped' colorScheme='teal'>
-        <Thead></Thead>
+        <Thead>
+          <Tr>{groupRequests.length === 0 && <Th>No Group Request</Th>}</Tr>
+        </Thead>
         <Tbody>
           {groupRequests.map(groupRequest => {
             return (
@@ -428,7 +569,9 @@ export default function FriendList() {
   const TeleportRequestsList = () => {
     return (
       <Table variant='striped' colorScheme='teal'>
-        <Thead></Thead>
+        <Thead>
+          <Tr>{teleportRequests.length === 0 && <Th>No Teleport Request</Th>}</Tr>
+        </Thead>
         <Tbody>
           {teleportRequests.map(teleportRequest => {
             return (
@@ -481,25 +624,28 @@ export default function FriendList() {
         <ModalOverlay />
         <ModalContent>
           {/* This is the content box of FriendList */}
-          <ModalHeader>Friends Menu</ModalHeader>
+          <ModalHeader>Friend Menu</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             {/* This is tabswitch, no need to add on-click */}
-            <Tabs isFitted variant='soft-rounded' colorScheme='green'>
+            <Tabs
+              isFitted
+              variant='soft-rounded'
+              colorScheme='green'
+              onChange={index => setTabIndex(index)}>
               <TabList>
-                <Tab>Friends</Tab>
-                <Tab>Group</Tab>
+                <Tab>Friend List</Tab>
+                <Tab>My Group</Tab>
                 <Tab>Requests</Tab>
-                <Tab>Add</Tab>
+                <Tab>Add Friend</Tab>
               </TabList>
               {/* This is the content of Friends tab */}
               <TabPanels>
                 <TabPanel>
                   <Table variant='striped' colorScheme='teal'>
                     <Thead>
-                      <Tr>
-                        <Th>Name</Th>
-                      </Tr>
+                      <Tr>{friends.length > 0 && <Th>Name</Th>}</Tr>
+                      <Tr>{friends.length === 0 && <Th>No friends</Th>}</Tr>
                     </Thead>
                     <Tbody>
                       {/* TODO: render the friends of our player as <tr> element, and implement on-click for Invite and Teleport button */}
@@ -509,41 +655,37 @@ export default function FriendList() {
                 </TabPanel>
                 <TabPanel>
                   {/* This is content for Group tab */}
-                  <Table variant='striped' colorScheme='teal'>
-                    <Thead>
-                      <Tr>
-                        <Th fontSize='md'>Group Members</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {/* TODO: render all the group members */}
-                      <Tr>
-                        <Td>Player1</Td>
-                      </Tr>
-                      <Tr>
-                        <Td>Player2</Td>
-                      </Tr>
-                      <Tr>
-                        <Td>Player3</Td>
-                      </Tr>
-                      <Tr>
-                        <Td>Player4</Td>
-                      </Tr>
-                    </Tbody>
-                  </Table>
+                  {GroupMembersList()}
                   {/* TODO: implement on-click for Leave and Assemble button, hide those button if player is not in group, hide Assemble
                   button when the player is not the group leader */}
                   <ButtonGroup gap='4'>
-                    <Button colorScheme='green' size='sm' variant='outline'>
+                    <Button
+                      colorScheme='green'
+                      size='sm'
+                      variant='outline'
+                      onClick={async () => leaveGroup(await db.getGroupIdByPlayerId(thisPlayerId))}>
                       Leave
                     </Button>
-                    <Button colorScheme='green' size='sm' variant='outline'>
+                    <Button
+                      colorScheme='green'
+                      size='sm'
+                      variant='outline'
+                      onClick={async () => createAssembleRequest()}>
                       Assemble
                     </Button>
+                    {groupLeader === thisPlayerId && (
+                      <Button
+                        colorScheme='green'
+                        size='sm'
+                        variant='outline'
+                        onClick={async () => assembleAtHangoutRoom()}>
+                        Hangout Room
+                      </Button>
+                    )}
                   </ButtonGroup>
                 </TabPanel>
                 <TabPanel>
-                  <Tabs>
+                  <Tabs onChange={index => setRequestTabIndex(index)}>
                     <TabList>
                       <Tab>Friend Request</Tab>
                       <Tab>Group Request</Tab>
