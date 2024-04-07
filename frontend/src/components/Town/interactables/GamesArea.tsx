@@ -27,6 +27,7 @@ import ConnectFourArea from './ConnectFour/ConnectFourArea';
 import GameAreaInteractable from './GameArea';
 import Leaderboard from './Leaderboard';
 import TicTacToeArea from './TicTacToe/TicTacToeArea';
+import * as db from '../../../../../townService/src/api/Player/db';
 
 export const INVALID_GAME_AREA_TYPE_MESSAGE = 'Invalid game area type';
 
@@ -136,9 +137,11 @@ export default function GameAreaWrapper(): JSX.Element {
       townController.interactEnd(gameArea);
       const controller = townController.getGameAreaController(gameArea);
       controller.leaveGame();
+      db.updateUserStatus(townController.ourPlayer.id, 'ONLINE');
     }
   }, [townController, gameArea]);
   if (gameArea) {
+    db.updateUserStatus(townController.ourPlayer.id, 'IN_GAME');
     return (
       <Modal isOpen={true} onClose={closeModal} closeOnOverlayClick={false} size='xl'>
         <ModalOverlay />

@@ -26,6 +26,9 @@ import {
   useToast,
   PinInputField,
   Heading,
+  FormControl,
+  FormLabel,
+  Switch,
 } from '@chakra-ui/react';
 import React, { useState, useEffect } from 'react';
 import useTownController from '../../hooks/useTownController';
@@ -57,6 +60,8 @@ type TeleportRequest = {
 type Friend = {
   friendId: string;
   friendName: string;
+  friendStatus: string;
+  friendPrivacy: boolean;
 };
 
 type GroupMember = {
@@ -81,7 +86,6 @@ export default function FriendList() {
   const thisPlayerId = townController.userID;
 
   const [friends, setFriends] = useState<Friend[]>([]);
-  const [groupName, setGroupName] = useState('');
   const [groupLeader, setGroupLeader] = useState('');
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
 
@@ -90,13 +94,28 @@ export default function FriendList() {
   const [teleportRequests, setTeleportRequests] = useState<TeleportRequest[]>([]);
 
   const [playerId, setPlayerId] = useState<string>('');
-
   async function getUserName(userID: string): Promise<string> {
     const { data, error } = await db.readUserName(userID);
     if (error) {
       throw new Error('error getting username');
     }
     return (data && data[0]?.username) || '';
+  }
+
+  async function getUserStatus(userID: string): Promise<string> {
+    const { data, error } = await db.readUserStatus(userID);
+    if (error) {
+      throw new Error('error getting status');
+    }
+    return (data && data[0]?.status) || '';
+  }
+
+  async function getUserPrivacy(userID: string): Promise<boolean> {
+    const { data, error } = await db.readUserPrivacy(userID);
+    if (error) {
+      throw new Error('error getting privacy');
+    }
+    return (data && data[0]?.privacy) || false;
   }
 
   const getFriends = async () => {
@@ -107,9 +126,13 @@ export default function FriendList() {
     const curFriends = await Promise.all(
       data?.map(async friend => {
         const friendName = (await getUserName(friend.friendid)).toString();
+        const friendStatus = (await getUserStatus(friend.friendid)).toString();
+        const friendPrivacy = await getUserPrivacy(friend.friendid);
         return {
           friendId: friend.friendid,
           friendName: friendName,
+          friendStatus: friendStatus,
+          friendPrivacy: friendPrivacy,
         };
       }) || [],
     );
@@ -333,18 +356,33 @@ export default function FriendList() {
     createAssembleRequest();
   }
 
-  function FriendPrompt(props: { friendId: string; friendName: string }): JSX.Element {
+  function FriendPrompt(props: {
+    friendId: string;
+    friendName: string;
+    friendStatus: string;
+    friendPrivacy: boolean;
+  }): JSX.Element {
+    const friendState = props.friendPrivacy ? props.friendStatus : 'HIDDEN';
     return (
       <Tr>
         <Td>{props.friendName}</Td>
-        <Td>Online</Td>
+        <Td>{friendState}</Td>
         <Td>
           <Button
             colorScheme='green'
             size='sm'
             variant='outline'
             onClick={() => createGroupRequest(props.friendId)}>
-            Invite
+            Invite to Group
+          </Button>
+        </Td>
+        <Td>
+          <Button
+            colorScheme='green'
+            size='sm'
+            variant='outline'
+            onClick={() => db.createTeleportRequest(townController.ourPlayer.id, props.friendId)}>
+            Teleport to Me
           </Button>
         </Td>
         <Td>
@@ -352,8 +390,8 @@ export default function FriendList() {
             colorScheme='red'
             size='sm'
             variant='outline'
-            onClick={() => db.createTeleportRequest(townController.ourPlayer.id, props.friendId)}>
-            Teleport
+            onClick={() => db.deleteFriend(townController.ourPlayer.id, props.friendId)}>
+            Delete
           </Button>
         </Td>
       </Tr>
@@ -489,9 +527,24 @@ export default function FriendList() {
                 key={friend.friendId}
                 friendId={friend.friendId}
                 friendName={friend.friendName}
+                friendStatus={friend.friendStatus}
+                friendPrivacy={friend.friendPrivacy}
               />
             );
           })}
+          <FormControl display='flex' alignItems='center'>
+            <FormLabel htmlFor='hide' mb='0'>
+              Hide My Status
+            </FormLabel>
+            <Switch
+              id='hide'
+              onChange={async () => {
+                const privacy = await getUserPrivacy(townController.ourPlayer.id);
+                db.updateUserPrivacy(townController.ourPlayer.id, !privacy);
+                console.log(privacy);
+              }}
+            />
+          </FormControl>
         </Tbody>
       </Table>
     );
@@ -620,7 +673,7 @@ export default function FriendList() {
     <>
       <Button onClick={onOpen}>Friends</Button>
 
-      <Modal isOpen={isOpen} onClose={onClose} size='2xl'>
+      <Modal isOpen={isOpen} onClose={onClose} size='4xl'>
         <ModalOverlay />
         <ModalContent>
           {/* This is the content box of FriendList */}

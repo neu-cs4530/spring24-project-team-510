@@ -8,10 +8,10 @@ export const supabase = createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZXZocnZmcXdjaXVva2FkdW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTA2MjM0NDMsImV4cCI6MjAyNjE5OTQ0M30.iPleffF5HuzrL65TjqmaHVevm4_5jAAUmbPig50Jbog',
 );
 // CRUD functions for table Users
-export async function createUser(userid, username, status) {
+export async function createUser(userid, username, privacy, status) {
   const { data, error } = await supabase
     .from('users')
-    .insert([{ userid, username, status }])
+    .insert([{ userid, username, privacy, status }])
     .select();
 
   return { data, error };
@@ -35,6 +35,12 @@ export async function readUserStatus(userId) {
   return { data, error };
 }
 
+export async function readUserPrivacy(userId) {
+  const { data, error } = await supabase.from('users').select('privacy').eq('userid', userId);
+
+  return { data, error };
+}
+
 export async function getUsers() {
   const { data, error } = await supabase.from('users').select('*');
 
@@ -45,6 +51,16 @@ export async function updateUserStatus(userId, newUserStatus) {
   const { data, error } = await supabase
     .from('users')
     .update({ status: newUserStatus })
+    .eq('userid', userId)
+    .select();
+
+  return { data, error };
+}
+
+export async function updateUserPrivacy(userId, newUserPrivacy) {
+  const { data, error } = await supabase
+    .from('users')
+    .update({ privacy: newUserPrivacy })
     .eq('userid', userId)
     .select();
 
