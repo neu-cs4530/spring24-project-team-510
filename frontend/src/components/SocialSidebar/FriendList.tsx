@@ -34,7 +34,7 @@ import React, { useState, useEffect } from 'react';
 import useTownController from '../../hooks/useTownController';
 import * as db from '../../../../townService/src/api/Player/db';
 import { request } from 'http';
-import { get } from 'lodash';
+import { get, set } from 'lodash';
 import { createClient } from '@supabase/supabase-js';
 import { PlayerID, PlayerLocation } from '../../../../shared/types/CoveyTownSocket';
 import TownGameScene from '../Town/TownGameScene';
