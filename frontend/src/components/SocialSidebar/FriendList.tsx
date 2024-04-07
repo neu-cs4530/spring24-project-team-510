@@ -390,7 +390,10 @@ export default function FriendList() {
             colorScheme='red'
             size='sm'
             variant='outline'
-            onClick={() => db.deleteFriend(townController.ourPlayer.id, props.friendId)}>
+            onClick={() => {
+              db.deleteFriend(townController.ourPlayer.id, props.friendId);
+              getFriends();
+            }}>
             Delete
           </Button>
         </Td>
@@ -541,7 +544,6 @@ export default function FriendList() {
               onChange={async () => {
                 const privacy = await getUserPrivacy(townController.ourPlayer.id);
                 db.updateUserPrivacy(townController.ourPlayer.id, !privacy);
-                console.log(privacy);
               }}
             />
           </FormControl>
