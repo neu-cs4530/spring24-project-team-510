@@ -98,7 +98,7 @@ export default function FriendList() {
 
   const [isOnCooldown, setIsOnCooldown] = useState(false);
 
-  const toast = useToast();
+  const teleportToast = useToast();
 
   async function getUserName(userID: string): Promise<string> {
     const { data, error } = await db.readUserName(userID);
@@ -385,7 +385,7 @@ export default function FriendList() {
                 duration: 5000,
                 render: () => (
                   <Box color='white' p={3} bg='pink.500'>
-                    someone just leaved the group.
+                    someone has left the group.
                   </Box>
                 ),
               });
@@ -445,7 +445,7 @@ export default function FriendList() {
     };
 
     if (isOnCooldown) {
-      toast({
+      teleportToast({
         title: 'You are currently on cooldown',
         description: 'There is a one minute cooldown on accepting teleport requests.',
         status: 'warning',
@@ -500,7 +500,7 @@ export default function FriendList() {
   async function createTeleportRequest(friendId: string) {
     const { data, error } = await db.getSentTeleportRequests(thisPlayerId);
     if (data && data.length > 0) {
-      toast({
+      teleportToast({
         title: 'Cannot send teleport request',
         description: 'You may only have one active teleport request at a time.',
         status: 'warning',
