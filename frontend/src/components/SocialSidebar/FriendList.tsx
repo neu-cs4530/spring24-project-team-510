@@ -449,7 +449,6 @@ export default function FriendList() {
       });
       return;
     } else {
-      console.log(isOnCooldown);
       setTimeout(acceptAfterDelay, 2000);
       setIsOnCooldown(true);
       setTimeout(() => {

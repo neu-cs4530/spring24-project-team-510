@@ -236,7 +236,6 @@ export async function createFriendRequest(requestorId, receiverId) {
     .insert([{ requestorid: requestorId, receiverid: receiverId, requeststatus: 'PENDING' }])
     .select();
 
-  console.log('Friend request sent');
   return { data, error };
 }
 
