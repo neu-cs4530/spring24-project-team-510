@@ -94,6 +94,11 @@ export default function FriendList() {
   const [teleportRequests, setTeleportRequests] = useState<TeleportRequest[]>([]);
 
   const [playerId, setPlayerId] = useState<string>('');
+
+  const [isOnCooldown, setIsOnCooldown] = useState(false);
+
+  const toast = useToast();
+
   async function getUserName(userID: string): Promise<string> {
     const { data, error } = await db.readUserName(userID);
     if (error) {
@@ -295,12 +300,32 @@ export default function FriendList() {
   }
 
   async function acceptTeleportRequest(requestId: bigint, requestorId: string) {
-    const newLocation = townController.getPlayer(requestorId as PlayerID).location;
-    onClose();
-    townController.emitMovement(newLocation);
-    townController.townGameScene.moveOurPlayerTo(newLocation);
-    await db.deleteTeleportRequest(requestId);
-    getTeleportRequests();
+    const acceptAfterDelay = async () => {
+      const newLocation = townController.getPlayer(requestorId as PlayerID).location;
+      onClose();
+      townController.emitMovement(newLocation);
+      townController.townGameScene.moveOurPlayerTo(newLocation);
+      await db.deleteTeleportRequest(requestId);
+      getTeleportRequests();
+    };
+
+    if (isOnCooldown) {
+      toast({
+        title: 'You are currently on cooldown',
+        description: 'There is a one minute cooldown on accepting teleport requests.',
+        status: 'warning',
+        isClosable: true,
+        duration: 2000,
+      });
+      return;
+    } else {
+      console.log(isOnCooldown);
+      setTimeout(acceptAfterDelay, 2000);
+      setIsOnCooldown(true);
+      setTimeout(() => {
+        setIsOnCooldown(false);
+      }, 60000);
+    }
   }
 
   async function declineTeleportRequest(requestId: bigint) {
@@ -337,12 +362,28 @@ export default function FriendList() {
     }
   }
 
+  async function createTeleportRequest(friendId: string) {
+    const { data, error } = await db.getSentTeleportRequests(thisPlayerId);
+    if (data && data.length > 0) {
+      toast({
+        title: 'Cannot send teleport request',
+        description: 'You may only have one active teleport request at a time.',
+        status: 'warning',
+        isClosable: true,
+        duration: 3000,
+      });
+      return;
+    } else {
+      await db.createTeleportRequest(thisPlayerId, friendId);
+    }
+  }
+
   async function createAssembleRequest() {
-    const groupId = await db.getGroupIdByPlayerId(townController.ourPlayer.id);
+    const groupId = await db.getGroupIdByPlayerId(thisPlayerId);
     if (groupId) {
       for (const member of groupMembers) {
         if (!member.isAdmin) {
-          await db.createTeleportRequest(townController.ourPlayer.id, member.memberId);
+          await db.createTeleportRequest(thisPlayerId, member.memberId);
           console.log('Assemble request sent' + groupId);
         }
       }
@@ -381,7 +422,7 @@ export default function FriendList() {
             colorScheme='green'
             size='sm'
             variant='outline'
-            onClick={() => db.createTeleportRequest(townController.ourPlayer.id, props.friendId)}>
+            onClick={() => createTeleportRequest(props.friendId)}>
             Teleport to Me
           </Button>
         </Td>
@@ -508,14 +549,6 @@ export default function FriendList() {
       </Tr>
     );
   }
-
-  // function acceptFriendRequestButton(props: { onClick: () => void }) {
-  //   return (
-  //     <Button colorScheme='green' size='sm' variant='outline' onClick={props.onClick}>
-  //       Accept
-  //     </Button>
-  //   )
-  // }
 
   const FriendsList = () => {
     console.log(thisPlayerId);

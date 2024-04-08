@@ -328,6 +328,15 @@ export async function createTeleportRequest(requestorId, receiverId) {
   return { data, error };
 }
 
+export async function getSentTeleportRequests(requestorId) {
+  const { data, error } = await supabase
+    .from('teleportrequests')
+    .select('*')
+    .eq('requestorid', requestorId);
+
+  return { data, error };
+}
+
 export async function getReceivedTeleportRequests(receiverId) {
   const { data, error } = await supabase
     .from('teleportrequests')
