@@ -29,6 +29,7 @@ import {
   FormControl,
   FormLabel,
   Switch,
+  Box,
 } from '@chakra-ui/react';
 import React, { useState, useEffect } from 'react';
 import useTownController from '../../hooks/useTownController';
@@ -116,6 +117,11 @@ export default function FriendList() {
       throw new Error('error getting privacy');
     }
     return (data && data[0]?.privacy) || false;
+  }
+
+  async function getgroupId(): Promise<bigint> {
+    const currentGroupId = await db.getGroupIdByPlayerId(townController.userID);
+    return currentGroupId;
   }
 
   const getFriends = async () => {
@@ -259,6 +265,135 @@ export default function FriendList() {
   useEffect(() => {
     getTeleportRequests();
   }, [playerId, isOpen, tabIndex, requestTabIndex]);
+
+  const toast = useToast();
+  useEffect(() => {
+    const supabase = createClient(
+      'https://bvevhrvfqwciuokadumx.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZXZocnZmcXdjaXVva2FkdW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTA2MjM0NDMsImV4cCI6MjAyNjE5OTQ0M30.iPleffF5HuzrL65TjqmaHVevm4_5jAAUmbPig50Jbog',
+    );
+    const subscription = supabase
+      .channel('custom-insert-channel')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'grouprequests' },
+        (payload: any) => {
+          if (payload.new.receiverid === thisPlayerId) {
+            toast({
+              position: 'bottom-left',
+              duration: 5000,
+              render: () => (
+                <Box color='white' p={3} bg='pink.500'>
+                  You have a group invitation ~
+                </Box>
+              ),
+            });
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [toast]);
+
+  useEffect(() => {
+    const supabase = createClient(
+      'https://bvevhrvfqwciuokadumx.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZXZocnZmcXdjaXVva2FkdW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTA2MjM0NDMsImV4cCI6MjAyNjE5OTQ0M30.iPleffF5HuzrL65TjqmaHVevm4_5jAAUmbPig50Jbog',
+    );
+    const subscription = supabase
+      .channel('custom-insert-channel')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'friendrequests' },
+        (payload: any) => {
+          if (payload.new.receiverid === thisPlayerId) {
+            toast({
+              position: 'bottom-left',
+              duration: 5000,
+              render: () => (
+                <Box color='white' p={3} bg='pink.500'>
+                  You have a friend request ~
+                </Box>
+              ),
+            });
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [toast]);
+
+  useEffect(() => {
+    const supabase = createClient(
+      'https://bvevhrvfqwciuokadumx.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZXZocnZmcXdjaXVva2FkdW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTA2MjM0NDMsImV4cCI6MjAyNjE5OTQ0M30.iPleffF5HuzrL65TjqmaHVevm4_5jAAUmbPig50Jbog',
+    );
+    const groupMemberInserted = supabase
+      .channel('custom-insert-channel')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'groupmembers' },
+        (payload: any) => {
+          getgroupId().then(groupId => {
+            if (payload.new.groupid === groupId) {
+              toast({
+                position: 'bottom-left',
+                duration: 5000,
+                render: () => (
+                  <Box color='white' p={3} bg='pink.500'>
+                    someone has joined the group.
+                  </Box>
+                ),
+              });
+            }
+          });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(groupMemberInserted);
+    };
+  }, [toast]);
+
+  useEffect(() => {
+    const supabase = createClient(
+      'https://bvevhrvfqwciuokadumx.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZXZocnZmcXdjaXVva2FkdW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTA2MjM0NDMsImV4cCI6MjAyNjE5OTQ0M30.iPleffF5HuzrL65TjqmaHVevm4_5jAAUmbPig50Jbog',
+    );
+    const groupMemberInserted = supabase
+      .channel('custom-delete-channel')
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'groupmembers' },
+        (payload: any) => {
+          getgroupId().then(groupId => {
+            if (payload.new.groupid === groupId) {
+              toast({
+                position: 'bottom-left',
+                duration: 5000,
+                render: () => (
+                  <Box color='white' p={3} bg='pink.500'>
+                    someone just leaved the group.
+                  </Box>
+                ),
+              });
+            }
+          });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(groupMemberInserted);
+    };
+  }, [toast]);
 
   async function acceptFriendRequest(requestorId: string) {
     await db.addFriend(townController.userID, requestorId);
@@ -518,8 +653,6 @@ export default function FriendList() {
   // }
 
   const FriendsList = () => {
-    console.log(thisPlayerId);
-    console.log(groupLeader);
     return (
       <Table variant='striped' colorScheme='teal'>
         <Thead></Thead>
