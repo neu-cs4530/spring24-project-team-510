@@ -395,6 +395,37 @@ export default function FriendList() {
     };
   }, [toast]);
 
+  useEffect(() => {
+    const supabase = createClient(
+      'https://bvevhrvfqwciuokadumx.supabase.co/',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZXZocnZmcXdjaXVva2FkdW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTA2MjM0NDMsImV4cCI6MjAyNjE5OTQ0M30.iPleffF5HuzrL65TjqmaHVevm4_5jAAUmbPig50Jbog',
+    );
+    const subscription = supabase
+      .channel('custom-insert-channel')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'teleportrequests' },
+        (payload: any) => {
+          if (payload.new.receiverid === thisPlayerId) {
+            toast({
+              position: 'bottom-left',
+              duration: 5000,
+              render: () => (
+                <Box color='white' p={3} bg='pink.500'>
+                  You have a teleport requests ~
+                </Box>
+              ),
+            });
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [toast]);
+
   async function acceptFriendRequest(requestorId: string) {
     await db.addFriend(townController.userID, requestorId);
     await db.deleteFriendRequest(requestorId);
