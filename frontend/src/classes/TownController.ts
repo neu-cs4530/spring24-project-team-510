@@ -10,6 +10,7 @@ import Interactable from '../components/Town/Interactable';
 import ConversationArea from '../components/Town/interactables/ConversationArea';
 import GameArea from '../components/Town/interactables/GameArea';
 import ViewingArea from '../components/Town/interactables/ViewingArea';
+import TownGameScene from '../components/Town/TownGameScene';
 import { LoginController } from '../contexts/LoginControllerContext';
 import { TownsService, TownsServiceClient } from '../generated/client';
 import useTownController from '../hooks/useTownController';
@@ -211,6 +212,11 @@ export default class TownController extends (EventEmitter as new () => TypedEmit
    */
   private _interactableEmitter = new EventEmitter();
 
+  /**
+   * The TownGameScene associated with this TownController
+   */
+  private _townGameScene?: TownGameScene;
+
   public constructor({ userName, townID, loginController }: ConnectionProperties) {
     super();
     this._townID = townID;
@@ -229,6 +235,16 @@ export default class TownController extends (EventEmitter as new () => TypedEmit
     this._socket = io(url, { auth: { userName, townID } });
     this._townsService = new TownsServiceClient({ BASE: url }).towns;
     this.registerSocketListeners();
+  }
+
+  public get townGameScene() {
+    const scene = this._townGameScene;
+    assert(scene);
+    return scene;
+  }
+
+  public set townGameScene(townGameScene: TownGameScene) {
+    this._townGameScene = townGameScene;
   }
 
   public get sessionToken() {
@@ -429,7 +445,8 @@ export default class TownController extends (EventEmitter as new () => TypedEmit
            * If we are told that WE moved, we shouldn't update our x,y because it's probably lagging behind
            * real time. However: we SHOULD update our interactable ID, because its value is managed by the server
            */
-          playerToUpdate.location.interactableID = movedPlayer.location.interactableID;
+          //playerToUpdate.location.interactableID = movedPlayer.location.interactableID;
+          playerToUpdate.location = movedPlayer.location;
         } else {
           playerToUpdate.location = movedPlayer.location;
         }

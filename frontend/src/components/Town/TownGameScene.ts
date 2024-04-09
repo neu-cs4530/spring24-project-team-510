@@ -92,6 +92,7 @@ export default class TownGameScene extends Phaser.Scene {
     this._resourcePathPrefix = resourcePathPrefix;
     this.coveyTownController = coveyTownController;
     this._players = this.coveyTownController.players;
+    coveyTownController.townGameScene = this;
   }
 
   preload() {

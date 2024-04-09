@@ -23,6 +23,7 @@ import ConversationArea from './ConversationArea';
 import GameAreaFactory from './games/GameAreaFactory';
 import InteractableArea from './InteractableArea';
 import ViewingArea from './ViewingArea';
+import * as db from '../api/Player/db';
 
 /**
  * The Town class implements the logic for each town: managing the various events that
@@ -118,6 +119,8 @@ export default class Town {
   async addPlayer(userName: string, socket: CoveyTownSocket): Promise<Player> {
     const newPlayer = new Player(userName, socket.to(this._townID));
     this._players.push(newPlayer);
+    // Add the new player to the database
+    await db.createUser(newPlayer.id, userName, true, 'ONLINE');
 
     this._connectedSockets.add(socket);
 
