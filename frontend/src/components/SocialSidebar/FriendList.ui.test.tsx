@@ -20,7 +20,7 @@ function renderFriendList() {
   );
 }
 
-/* beforeEach(async () => {
+beforeEach(async () => {
   renderFriendList();
   await userEvent.click(screen.getByRole('button', { name: /Friends/i }));
 });
@@ -129,4 +129,4 @@ describe('FriendList', () => {
       });
     });
   });
-}); */
+});
