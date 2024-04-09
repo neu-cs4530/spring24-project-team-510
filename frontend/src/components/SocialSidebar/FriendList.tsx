@@ -408,8 +408,17 @@ export default function FriendList() {
 
   async function acceptGroupRequest(requestId: bigint, groupId: bigint) {
     const currentGroupId = await db.getGroupIdByPlayerId(townController.userID);
-    if (currentGroupId) {
-      await db.removeGroupMember(currentGroupId, townController.userID);
+    if (currentGroupId !== null) {
+      toast({
+        position: 'bottom-left',
+        duration: 5000,
+        render: () => (
+          <Box color='white' p={3} bg='pink.500'>
+            You already in a group, please leave current group to join the new one.
+          </Box>
+        ),
+      });
+      return;
     }
     const addMemberResponse = await db.addGroupMember(groupId, townController.userID);
     if (addMemberResponse.error) {
@@ -542,7 +551,17 @@ export default function FriendList() {
             colorScheme='green'
             size='sm'
             variant='outline'
-            onClick={() => createGroupRequest(props.friendId)}>
+            onClick={() => {
+              createGroupRequest(props.friendId);
+              toast({
+                position: 'bottom-left',
+                render: () => (
+                  <Box color='white' p={3} bg='blue.500'>
+                    Group Request sent!
+                  </Box>
+                ),
+              });
+            }}>
             Invite to Group
           </Button>
         </Td>
@@ -551,7 +570,17 @@ export default function FriendList() {
             colorScheme='green'
             size='sm'
             variant='outline'
-            onClick={() => createTeleportRequest(props.friendId)}>
+            onClick={() => {
+              createTeleportRequest(props.friendId);
+              toast({
+                position: 'bottom-left',
+                render: () => (
+                  <Box color='white' p={3} bg='blue.500'>
+                    Teleport Request sent!
+                  </Box>
+                ),
+              });
+            }}>
             Teleport to Me
           </Button>
         </Td>
@@ -823,6 +852,14 @@ export default function FriendList() {
               } catch (error) {
                 console.error('Error sending friend request:', error);
               }
+              toast({
+                position: 'bottom-left',
+                render: () => (
+                  <Box color='white' p={3} bg='blue.500'>
+                    Friend Request Sent!
+                  </Box>
+                ),
+              });
             }}>
             Add
           </Button>
@@ -836,7 +873,7 @@ export default function FriendList() {
       <Button onClick={onOpen}>Friends</Button>
 
       <Modal isOpen={isOpen} onClose={onClose} size='4xl'>
-        <ModalOverlay />
+        <ModalOverlay backdropFilter='blur(5px)' />
         <ModalContent>
           {/* This is the content box of FriendList */}
           <ModalHeader>Friend Menu</ModalHeader>
@@ -885,7 +922,17 @@ export default function FriendList() {
                       colorScheme='green'
                       size='sm'
                       variant='outline'
-                      onClick={async () => createAssembleRequest()}>
+                      onClick={async () => {
+                        createAssembleRequest();
+                        toast({
+                          position: 'bottom-left',
+                          render: () => (
+                            <Box color='white' p={3} bg='blue.500'>
+                              Assemble Request Sent!
+                            </Box>
+                          ),
+                        });
+                      }}>
                       Assemble
                     </Button>
                     {groupLeader === thisPlayerId && (
