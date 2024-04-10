@@ -551,7 +551,7 @@ export default function FriendList() {
     const groupId = await db.getGroupIdByPlayerId(thisPlayerId);
     if (groupId) {
       for (const member of groupMembers) {
-        if (!member.isAdmin) {
+        if (member.memberId !== thisPlayerId) {
           await db.createTeleportRequest(thisPlayerId, member.memberId);
           console.log('Assemble request sent' + groupId);
         }
