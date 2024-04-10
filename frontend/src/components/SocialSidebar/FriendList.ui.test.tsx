@@ -1,7 +1,7 @@
 import { ChakraProvider } from '@chakra-ui/react';
-import TownController, * as TownControllerHooks from '../../classes/TownController';
+import TownController from '../../classes/TownController';
 import TownControllerContext from '../../contexts/TownControllerContext';
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { mock, mockReset } from 'jest-mock-extended';
 import React from 'react';
 import FriendList from './FriendList';
@@ -26,13 +26,13 @@ beforeEach(async () => {
 describe('FriendList', () => {
     describe('Friend List tab', () => {
         test('The tab is rendered', async () => {
-            await waitFor(() => {expect(screen.getByRole('tab', { name: /Friend List/i })).toBeInTheDocument()});
+            await waitFor(() => { expect(screen.getByRole('tab', { name: /Friend List/i })).toBeInTheDocument()});
         });
         describe('When clicked', () => {
             it('Goes to the Friend List page, and the page renders', async () => {
                 const friendListTab = screen.getByRole('tab', { name: /Friend List/i });
                 await userEvent.click(friendListTab);
-                await waitFor(() => {expect(screen.getByText(/No friends/i)).toBeInTheDocument()});
+                await waitFor(() => { expect(screen.getByText(/No friends/i)).toBeInTheDocument() });
             });
         });
     });
